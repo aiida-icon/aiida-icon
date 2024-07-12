@@ -5,6 +5,8 @@
 
 -----
 
+[AiiDA](www.aiida.net) plugin to run the [ICON Weather & Climate Model](https://icon-model.org/) as part of HPC workflows.
+
 ## Table of Contents
 
 - [Installation](#installation)

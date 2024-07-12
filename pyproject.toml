@@ -21,7 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = []
+dependencies = ["aiida-core>=2.5"]
 
 [project.urls]
 Documentation = "https://github.com/DropD/aiida-icon#readme"
