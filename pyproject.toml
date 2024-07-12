@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aiida-icon"
+dynamic = ["version"]
+description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "DropD", email = "rico.haeuselmann@gmail.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/DropD/aiida-icon#readme"
+Issues = "https://github.com/DropD/aiida-icon/issues"
+Source = "https://github.com/DropD/aiida-icon"
+
+[tool.hatch.version]
+path = "src/aiida_icon/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"
+
+[tool.coverage.run]
+source_pkgs = ["aiida_icon", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/aiida_icon/__about__.py",
+]
+
+[tool.coverage.paths]
+aiida_icon = ["src/aiida_icon", "*/aiida-icon/src/aiida_icon"]
+tests = ["tests", "*/aiida-icon/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
