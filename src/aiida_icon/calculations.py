@@ -2,26 +2,25 @@ from __future__ import annotations
 
 import pathlib
 import re
+import typing
 
 from aiida import engine, orm
 from aiida.common import datastructures, folders
-from aiida.engine.processes.calcjobs import calcjob
 from aiida.parsers import parser
+
+if typing.TYPE_CHECKING:
+    from aiida.engine.processes.calcjobs import calcjob
 
 
 class Icon(engine.CalcJob):
     """AiiDA calculation to run ICON."""
 
     @classmethod
-    def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:
+    def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core
         super().define(spec)
         spec.input("expid", valid_type=orm.Str, serializer=orm.to_aiida_type)
-        spec.input(
-            "ifs2icon_filename", valid_type=orm.Str, serializer=orm.to_aiida_type
-        )
-        spec.input(
-            "gcm_converted", valid_type=orm.RemoteData, help="Converted GCM data."
-        )
+        spec.input("ifs2icon_filename", valid_type=orm.Str, serializer=orm.to_aiida_type)
+        spec.input("gcm_converted", valid_type=orm.RemoteData, help="Converted GCM data.")
         spec.input(
             "boundary_data",
             valid_type=orm.RemoteData,
@@ -75,22 +74,22 @@ class Icon(engine.CalcJob):
         spec.input("ecraddir", valid_type=orm.RemoteData)
         spec.output("restart_file_dir")
         spec.output("restart_file_name")
-        options = spec.inputs["metadata"]["options"]
-        options["resources"].default = {
+        options = spec.inputs["metadata"]["options"]  # type: ignore[index] # guaranteed correct by aiida-core
+        options["resources"].default = {  # type: ignore[index] # guaranteed correct by aiida-core
             "num_machines": 10,
             "num_mpiprocs_per_machine": 1,
             "num_cores_per_mpiproc": 2,
         }
-        options["withmpi"].default = True
-        options["mpirun_extra_params"].default = [
+        options["withmpi"].default = True  # type: ignore[index] # guaranteed correct by aiida-core
+        options["mpirun_extra_params"].default = [  # type: ignore[index] # guaranteed correct by aiida-core
             "--ntasks-per-node",
             "1",
             "--hint=nomultithread",
             "--cpus-per-task",
             "1",
         ]
-        options["parser_name"].default = "c2sm.spice_raw_icon"
-        options["environment_variables"].default = {
+        options["parser_name"].default = "c2sm.spice_raw_icon"  # type: ignore[index] # guaranteed correct by aiida-core
+        options["environment_variables"].default = {  # type: ignore[index] # guaranteed correct by aiida-core
             "GRAN_ICON": "core",
             #      "OMP_NUM_THREADS": 1,
             #      "ICON_THREADS": 1,
@@ -131,16 +130,12 @@ class Icon(engine.CalcJob):
             ),
             (
                 self.inputs.code.computer.uuid,
-                parent_grid_path := str(
-                    ini_basedir_path / self.inputs.parent_grid_relpath.value
-                ),
+                parent_grid_path := str(ini_basedir_path / self.inputs.parent_grid_relpath.value),
                 pathlib.Path(parent_grid_path).name,
             ),
             (
                 self.inputs.code.computer.uuid,
-                lam_grid_path := str(
-                    ini_basedir_path / self.inputs.lam_grid_relpath.value
-                ),
+                lam_grid_path := str(ini_basedir_path / self.inputs.lam_grid_relpath.value),
                 pathlib.Path(lam_grid_path).name,
             ),
             (
@@ -150,12 +145,7 @@ class Icon(engine.CalcJob):
             ),
             (
                 self.inputs.code.computer.uuid,
-                str(
-                    latbc_path := pathlib.Path(
-                        self.inputs.ini_basedir.get_remote_path()
-                    )
-                    / "dict.latbc"
-                ),
+                str(latbc_path := pathlib.Path(self.inputs.ini_basedir.get_remote_path()) / "dict.latbc"),
                 latbc_path.name,
             ),
             (
@@ -171,8 +161,7 @@ class Icon(engine.CalcJob):
         ]
         if "restart_file_dir" in self.inputs:
             restart_path = (
-                pathlib.Path(self.inputs.restart_file_dir.get_remote_path())
-                / self.inputs.restart_file_name.value
+                pathlib.Path(self.inputs.restart_file_dir.get_remote_path()) / self.inputs.restart_file_name.value
             )
             calcinfo.remote_symlink_list += [
                 (
@@ -202,16 +191,14 @@ class Icon(engine.CalcJob):
 class IconParser(parser.Parser):
     """Parser for raw Icon calculations."""
 
-    def parse(self, **kwargs):
+    def parse(self, **kwargs):  # noqa: ARG002  # kwargs must be there for super compatibility
         remote_folder = self.node.outputs.remote_folder
 
         files = remote_folder.listdir()
         restart_pattern = re.compile(r".*_restart_atm_\d{8}T.*\.nc")
         multirestart_pattern = re.compile(r"multifile_restart_atm_\d{8}T.*.mfr")
         for file_name in files:
-            if re.match(restart_pattern, file_name) or re.match(
-                multirestart_pattern, file_name
-            ):
+            if re.match(restart_pattern, file_name) or re.match(multirestart_pattern, file_name):
                 self.out("restart_file_name", orm.Str(file_name))
                 self.out("restart_file_dir", self.node.outputs.remote_folder.clone())
                 return engine.ExitCode(0)

@@ -1,17 +1,10 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = ["hatchling"]
 
 [project]
-name = "aiida-icon"
-dynamic = ["version"]
-description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
-readme = "README.md"
-requires-python = ">=3.10"
-license = "MIT"
-keywords = []
 authors = [
-  { name = "Rico Häuselmann", email = "rico.haeuselmann@gmail.com" },
+  {name = "Rico Häuselmann", email = "rico.haeuselmann@gmail.com"}
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -19,35 +12,24 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: CPython"
 ]
 dependencies = ["aiida-core>=2.5"]
+description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
+dynamic = ["version"]
+keywords = []
+license = "MIT"
+name = "aiida-icon"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.entry-points."aiida.calculations"]
+"aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
 
 [project.urls]
 Documentation = "https://github.com/DropD/aiida-icon#readme"
 Issues = "https://github.com/DropD/aiida-icon/issues"
 Source = "https://github.com/DropD/aiida-icon"
-
-[project.entry-points."aiida.calculations"]
-"aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
-
-[tool.hatch.version]
-path = "src/aiida_icon/__about__.py"
-
-[tool.hatch.envs.types]
-extra-dependencies = [
-  "mypy>=1.0.0",
-]
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"
-
-[tool.coverage.run]
-source_pkgs = ["aiida_icon", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/aiida_icon/__about__.py",
-]
 
 [tool.coverage.paths]
 aiida_icon = ["src/aiida_icon", "*/aiida-icon/src/aiida_icon"]
@@ -57,5 +39,27 @@ tests = ["tests", "*/aiida-icon/tests"]
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
+  "if TYPE_CHECKING:"
 ]
+
+[tool.coverage.run]
+branch = true
+omit = [
+  "src/aiida_icon/__about__.py"
+]
+parallel = true
+source_pkgs = ["aiida_icon", "tests"]
+
+[tool.hatch.envs.default]
+installer = "uv"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0"
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"
+
+[tool.hatch.version]
+path = "src/aiida_icon/__about__.py"
