@@ -14,7 +14,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython"
 ]
-dependencies = ["aiida-core>=2.5"]
+dependencies = ["aiida-core>=2.5", "f90nml"]
 description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
 dynamic = ["version"]
 keywords = []
@@ -24,7 +24,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.entry-points."aiida.calculations"]
-"aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
+"aiida_icon.icon" = "aiida_icon.calculations:Icon"
+
+[project.entry-points."aiida.parsers"]
+"aiida_icon.icon" = "aiida_icon.calculations:IconParser"
 
 [project.urls]
 Documentation = "https://github.com/DropD/aiida-icon#readme"
@@ -39,7 +42,8 @@ tests = ["tests", "*/aiida-icon/tests"]
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:"
+  "if TYPE_CHECKING:",
+  "if typing.TYPE_CHECKING:"
 ]
 
 [tool.coverage.run]
@@ -63,3 +67,7 @@ check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"
 
 [tool.hatch.version]
 path = "src/aiida_icon/__about__.py"
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = "f90nml"
