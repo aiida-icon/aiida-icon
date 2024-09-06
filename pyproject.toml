@@ -68,6 +68,12 @@ check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"
 [tool.hatch.version]
 path = "src/aiida_icon/__about__.py"
 
+[tool.mypy]
+exclude = ['^examples/.*']
+
 [[tool.mypy.overrides]]
 ignore_missing_imports = true
 module = "f90nml"
+
+[tool.ruff]
+exclude = ["examples"]

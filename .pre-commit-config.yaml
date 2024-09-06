@@ -32,13 +32,25 @@ repos:
     entry: hatch fmt -f
     language: system
     types: [python]
+    exclude: |
+      (?x)^(
+      examples/.*
+      )$
   - id: lint
     name: lint
     entry: hatch fmt -l
     language: system
     types: [python]
+    exclude: |
+      (?x)^(
+      examples/.*
+      )$
   - id: types
     name: types
     entry: hatch env run -e types check
     language: system
     types: [python]
+    exclude: |
+      (?x)^(
+      examples/.*
+      )$
