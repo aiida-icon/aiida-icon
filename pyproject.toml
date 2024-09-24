@@ -24,7 +24,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.entry-points."aiida.calculations"]
-"aiida_icon.icon" = "aiida_icon.calculations:Icon"
+"aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
 
 [project.entry-points."aiida.parsers"]
 "aiida_icon.icon" = "aiida_icon.calculations:IconParser"

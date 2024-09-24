@@ -12,7 +12,7 @@ def common_alps_setup(builder: processes.ProcessBuilder) -> None:
     """
     Set AiiDA process options for running an aiida_icon.icon calcjob on ALPS.
 
-    Needs to be used with the `wrapper_script` input of the IconCalcjob
+    Needs to be used with the `wrapper_script` input of the IconCalculation.
     """
     options = builder.metadata.options  # type: ignore[attr-defined]  # builder has a custom setattr
     options.custom_scheduler_commands = "\n".join(

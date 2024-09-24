@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
     from aiida.engine.processes.calcjobs import calcjob
 
 
-class Icon(engine.CalcJob):
+class IconCalculation(engine.CalcJob):
     """AiiDA calculation to run ICON."""
 
     @classmethod
@@ -86,7 +86,11 @@ class Icon(engine.CalcJob):
             ),
         ]
         calcinfo.remote_copy_list = [
-            (self.inputs.code.computer.uuid, self.inputs.cloud_opt_props.get_remote_path(), "ECHAM6_CldOptProps.nc"),
+            (
+                self.inputs.code.computer.uuid,
+                self.inputs.cloud_opt_props.get_remote_path(),
+                "ECHAM6_CldOptProps.nc",
+            ),
             (
                 self.inputs.code.computer.uuid,
                 self.inputs.dmin_wetgrowth_lookup.get_remote_path(),
@@ -115,7 +119,11 @@ class Icon(engine.CalcJob):
                     "run_icon.sh",
                 )
             )
-        calcinfo.retrieve_list = ["finish.status", "nml.atmo.log", "output_schedule.txt"]
+        calcinfo.retrieve_list = [
+            "finish.status",
+            "nml.atmo.log",
+            "output_schedule.txt",
+        ]
         return calcinfo
 
 
