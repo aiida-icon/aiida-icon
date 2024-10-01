@@ -59,7 +59,8 @@ installer = "uv"
 
 [tool.hatch.envs.types]
 extra-dependencies = [
-  "mypy>=1.0.0"
+  "mypy>=1.0.0",
+  "pytest"
 ]
 
 [tool.hatch.envs.types.scripts]
