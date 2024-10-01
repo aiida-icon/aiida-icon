@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import pathlib
 import re
 import typing
@@ -62,7 +63,9 @@ class IconCalculation(engine.CalcJob):
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
 
         for output_spec in model_namelist_data["output_nml"]:
-            folder.get_subfolder(pathlib.Path(output_spec["output_filename"]).name, create=True)
+            folder.get_subfolder(
+                pathlib.Path(output_spec["output_filename"]).name, create=True
+            )
 
         codeinfo = datastructures.CodeInfo()
         codeinfo.code_uuid = self.inputs.code.uuid
@@ -108,7 +111,9 @@ class IconCalculation(engine.CalcJob):
             (
                 self.inputs.model_namelist.uuid,
                 self.inputs.model_namelist.filename,
-                master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
+                master_namelist_data["master_model_nml"][
+                    "model_namelist_filename"
+                ].strip(),
             ),
         ]
 
@@ -131,27 +136,54 @@ class IconCalculation(engine.CalcJob):
 class IconParser(parser.Parser):
     """Parser for raw Icon calculations."""
 
+    class FinishStatus(enum.Enum):
+        OK = enum.auto()
+        RESTART = enum.auto()
+        UNEXPECTED = enum.auto()
+        ERR_READING_STATUS = enum.auto()
+        ERR_MISSING_STATUS = enum.auto()
+
     def parse(self, **kwargs):  # noqa: ARG002  # kwargs must be there for superclass compatibility
         remote_folder = self.node.outputs.remote_folder
+        finish_status = self.parse_finish_status()
 
         files = remote_folder.listdir()
+        # TODO: get these from iconutils.modelnml
         restart_pattern = re.compile(r".*_restart_atm_\d{8}T.*\.nc")
         multirestart_pattern = re.compile(r"multifile_restart_atm_\d{8}T.*.mfr")
 
+        # TODO: make these mandatory depending on the masternml and / or finish status
         for file_name in files:
-            if re.match(restart_pattern, file_name) or re.match(multirestart_pattern, file_name):
+            if re.match(restart_pattern, file_name) or re.match(
+                multirestart_pattern, file_name
+            ):
                 self.out("restart_file_name", orm.Str(file_name))
                 self.out("restart_file_dir", self.node.outputs.remote_folder.clone())
 
+        match finish_status:
+            case self.FinishStatus.OK | self.FinishStatus.RESTART:
+                return engine.ExitCode(0)
+            case self.FinishStatus.UNEXPECTED:
+                return self.exit_codes.FAILED_CHECK_STATUS
+            case self.FinishStatus.ERR_READING_STATUS:
+                return self.exit_codes.ERROR_READING_STATUS_FILE
+            case self.FinishStatus.ERR_MISSING_STATUS:
+                return self.exit_codes.ERROR_MISSING_OUTPUT_FILES
+
+    def parse_finish_status(self) -> FinishStatus:
         if "finish.status" in self.retrieved.list_object_names():
             try:
                 with self.retrieved.open("finish.status", "r") as status_file:
                     out_status = status_file.read().strip()
                     self.out("finish_status", orm.Str(out_status))
-                    if out_status == "OK":
-                        return engine.ExitCode(0)
-                    return self.exit_codes.FAILED_CHECK_STATUS
+                    match out_status:
+                        case "OK":
+                            return self.FinishStatus.OK
+                        case "RESTART":
+                            return self.FinishStatus.RESTART
+                        case _:
+                            return self.FinishStatus.UNEXPECTED
             except OSError:
-                return self.exit_codes.ERROR_READING_STATUS_FILE
+                return self.FinishStatus.ERR_READING_STATUS
         else:
-            return self.exit_codes.ERROR_MISSING_OUTPUT_FILES
+            return self.FinishStatus.ERR_MISSING_STATUS
