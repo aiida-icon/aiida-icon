@@ -3,7 +3,7 @@ name: unittests
 on: [push, pull_request]
 
 jobs:
-  static-analysis:
+  unittests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
