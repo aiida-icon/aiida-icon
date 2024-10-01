@@ -59,6 +59,7 @@ class IconCalculation(engine.CalcJob):
 
     def prepare_for_submission(self, folder: folders.Folder) -> datastructures.CalcInfo:
         model_namelist_data = f90nml.reads(self.inputs.model_namelist.get_content())
+        master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
 
         for output_spec in model_namelist_data["output_nml"]:
             folder.get_subfolder(pathlib.Path(output_spec["output_filename"]).name, create=True)
@@ -71,13 +72,13 @@ class IconCalculation(engine.CalcJob):
         calcinfo.remote_symlink_list = [
             (
                 self.inputs.code.computer.uuid,
-                dynamics_grid_path := self.inputs.dynamics_grid_file.get_remote_path(),
-                pathlib.Path(dynamics_grid_path).name,
+                self.inputs.dynamics_grid_file.get_remote_path(),
+                model_namelist_data["grid_nml"]["dynamics_grid_filename"].strip(),
             ),
             (
                 self.inputs.code.computer.uuid,
                 self.inputs.ecrad_data.get_remote_path(),
-                "ecrad_data",
+                model_namelist_data["radiation_nml"]["ecrad_data_path"].strip(),
             ),
             (
                 self.inputs.code.computer.uuid,
@@ -107,7 +108,7 @@ class IconCalculation(engine.CalcJob):
             (
                 self.inputs.model_namelist.uuid,
                 self.inputs.model_namelist.filename,
-                "model.namelist",
+                master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
             ),
         ]
 
