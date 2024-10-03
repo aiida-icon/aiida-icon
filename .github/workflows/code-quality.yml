@@ -1,6 +1,10 @@
 name: static-analysis
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # always
 
 jobs:
   static-analysis:
@@ -17,7 +21,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{matrix.python-version}}
-        
+
     - name: Setup uv
       uses: andgineer/uv-venv@v1
 
