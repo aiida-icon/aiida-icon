@@ -10,6 +10,8 @@ from aiida import engine, orm
 from aiida.common import datastructures, folders
 from aiida.parsers import parser
 
+from aiida_icon.iconutils import modelnml
+
 if typing.TYPE_CHECKING:
     from aiida.engine.processes.calcjobs import calcjob
 
@@ -31,8 +33,8 @@ class IconCalculation(engine.CalcJob):
         spec.input("cloud_opt_props", valid_type=orm.RemoteData)
         spec.input("dmin_wetgrowth_lookup", valid_type=orm.RemoteData)
         spec.input("rrtmg_sw", valid_type=orm.RemoteData)
-        spec.output("restart_file_dir")
-        spec.output("restart_file_name")
+        spec.output("latest_restart_file")
+        spec.output_namespace("all_restart_files", dynamic=True)
         spec.output("finish_status")
         options = spec.inputs["metadata"]["options"]  # type: ignore[index] # guaranteed correct by aiida-core
         options["resources"].default = {  # type: ignore[index] # guaranteed correct by aiida-core
@@ -45,17 +47,22 @@ class IconCalculation(engine.CalcJob):
         spec.exit_code(
             300,
             "ERROR_MISSING_OUTPUT_FILES",
-            message="ICON did not create a restart file or directory!",
+            message="ICON did not create a restart file or directory.",
         )
         spec.exit_code(
             301,
             "ERROR_READING_STATUS_FILE",
-            message="Could not read the finish.status file!",
+            message="Could not read the finish.status file.",
         )
         spec.exit_code(
             302,
             "FAILED_CHECK_STATUS",
-            message="The final status was not 'OK', check the finish_status output!",
+            message="The final status was not 'OK or RESTART', check the finish_status output.",
+        )
+        spec.exit_code(
+            310,
+            "ERROR_MISSING_RESTART_FILES",
+            message="ICON was expected to produce a restart file but did not.",
         )
 
     def prepare_for_submission(self, folder: folders.Folder) -> datastructures.CalcInfo:
@@ -63,9 +70,7 @@ class IconCalculation(engine.CalcJob):
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
 
         for output_spec in model_namelist_data["output_nml"]:
-            folder.get_subfolder(
-                pathlib.Path(output_spec["output_filename"]).name, create=True
-            )
+            folder.get_subfolder(pathlib.Path(output_spec["output_filename"]).name, create=True)
 
         codeinfo = datastructures.CodeInfo()
         codeinfo.code_uuid = self.inputs.code.uuid
@@ -111,9 +116,7 @@ class IconCalculation(engine.CalcJob):
             (
                 self.inputs.model_namelist.uuid,
                 self.inputs.model_namelist.filename,
-                master_namelist_data["master_model_nml"][
-                    "model_namelist_filename"
-                ].strip(),
+                master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
             ),
         ]
 
@@ -145,24 +148,35 @@ class IconParser(parser.Parser):
 
     def parse(self, **kwargs):  # noqa: ARG002  # kwargs must be there for superclass compatibility
         remote_folder = self.node.outputs.remote_folder
+        remote_path = pathlib.Path(remote_folder.get_remote_path())
         finish_status = self.parse_finish_status()
 
         files = remote_folder.listdir()
-        # TODO: get these from iconutils.modelnml
-        restart_pattern = re.compile(r".*_restart_atm_\d{8}T.*\.nc")
-        multirestart_pattern = re.compile(r"multifile_restart_atm_\d{8}T.*.mfr")
+        all_restarts_pattern = modelnml.restart_file_pattern()
+        latest_restart_name = modelnml.latest_restart_multifile_link_name()
 
-        # TODO: make these mandatory depending on the masternml and / or finish status
+        all_restart_remotedatas = {}
         for file_name in files:
-            if re.match(restart_pattern, file_name) or re.match(
-                multirestart_pattern, file_name
-            ):
-                self.out("restart_file_name", orm.Str(file_name))
-                self.out("restart_file_dir", self.node.outputs.remote_folder.clone())
+            if restart_match := re.match(all_restarts_pattern, file_name):
+                all_restart_remotedatas[f"restart_{restart_match['timestamp']}"] = orm.RemoteData(
+                    computer=self.node.computer,
+                    remote_path=remote_path / file_name,
+                )
+            if file_name == latest_restart_name:
+                self.out(
+                    "latest_restart_file",
+                    orm.RemoteData(computer=self.node.computer, remote_path=remote_path / file_name),
+                )
+
+        self.out("all_restart_files", all_restart_remotedatas)
 
         match finish_status:
-            case self.FinishStatus.OK | self.FinishStatus.RESTART:
+            case self.FinishStatus.OK:
                 return engine.ExitCode(0)
+            case self.FinishStatus.RESTART:
+                if self.node.latest_restart_file and all_restart_remotedatas:
+                    return engine.ExitCode(0)
+                return self.exit_codes.MISSING_RESTART_FILES
             case self.FinishStatus.UNEXPECTED:
                 return self.exit_codes.FAILED_CHECK_STATUS
             case self.FinishStatus.ERR_READING_STATUS:

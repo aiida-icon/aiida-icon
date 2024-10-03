@@ -1,26 +1,24 @@
 import aiida.orm
 import f90nml
 
+from aiida_icon import exceptions
 
-def get_restart_file_pattern(model_nml: aiida.orm.SinglefileData):
+
+def restart_file_pattern(model_nml: aiida.orm.SinglefileData):
     data = f90nml.reads(model_nml.get_content())
 
-    restart_write_mode = data.get("io_nml", {}).get(
-        "restart_write_mode", "joint procs multifile"
-    )
+    restart_write_mode = data.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
     if "multifile" not in restart_write_mode:
-        raise ValueError("Dealing with non-multifile restart modes is not supported.")
+        raise exceptions.SinglefileRestartNotImplementedError
 
-    return r"multifile_atm_\d{8}T\d{6}Z.mfr"
+    return r"multifile_atm_\(?P=timestamp\d{8}T\d{6}Z\).mfr"
 
 
-def get_latest_restart_multifile_link(model_nml: aiida.orm.SinglefileData):
+def latest_restart_file_link_name(model_nml: aiida.orm.SinglefileData):
     data = f90nml.reads(model_nml.get_content())
 
-    restart_write_mode = data.get("io_nml", {}).get(
-        "restart_write_mode", "joint procs multifile"
-    )
+    restart_write_mode = data.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
     if "multifile" not in restart_write_mode:
-        raise ValueError("Dealing with non-multifile restart modes is not supported.")
+        raise exceptions.SinglefileRestartNotImplementedError
 
     return "multifile_restart_atm.mfr"
