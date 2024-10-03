@@ -68,7 +68,7 @@ class IconCalculation(engine.CalcJob):
             return pathlib.Path(filename_format.replace('<output_filename>', output_filename)).parent
 
         # if only 1 output stream, make it a list
-        if type(specs := model_namelist_data["output_nml"]) is f90nml.namelist.Namelist:
+        if isinstance(specs := model_namelist_data["output_nml"], f90nml.namelist.Namelist):
             specs = [specs]
 
         for stream_spec in specs:
