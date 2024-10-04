@@ -24,8 +24,7 @@ jobs:
 
     - name: install Python dependencies
       run: |
-        uv pip install --upgrade pip 
-        uv pip install pre-commit hatch
+        uv --system pip install pre-commit hatch
 
     - name: pre-commit
       run: pre-commit run --all-files
