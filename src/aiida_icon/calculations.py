@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import enum
 import pathlib
 import re
@@ -10,7 +11,8 @@ from aiida import engine, orm
 from aiida.common import datastructures, folders
 from aiida.parsers import parser
 
-from aiida_icon.iconutils import modelnml
+from aiida_icon import exceptions
+from aiida_icon.iconutils import masternml, modelnml
 
 if typing.TYPE_CHECKING:
     from aiida.engine.processes.calcjobs import calcjob
@@ -54,11 +56,24 @@ class IconCalculation(engine.CalcJob):
             "ERROR_READING_STATUS_FILE",
             message="Could not read the finish.status file.",
         )
+        # deprecated, replaced by 304: PARTIALLY_PARSED + log messages
         spec.exit_code(
             302,
             "FAILED_CHECK_STATUS",
             message="The final status was not 'OK or RESTART', check the finish_status output.",
         )
+        # deprecated, replaced by 304: PARTIALLY_PARSED + log messages
+        spec.exit_code(
+            303,
+            "UNSUPPORTED_FEATURE",
+            message="Could not fully parse due to an unsupported feature, please check the log.",
+        )
+        spec.exit_code(
+            304,
+            "PARTIALLY_PARSED",
+            message="Some outputs might be missing, check the log for explanations.",
+        )
+        # deprecated, replaced by 304: PARTIALLY_PARSED + log messages
         spec.exit_code(
             310,
             "ERROR_MISSING_RESTART_FILES",
@@ -136,68 +151,118 @@ class IconCalculation(engine.CalcJob):
         return calcinfo
 
 
+class FinishStatus(enum.Enum):
+    OK = enum.auto()
+    RESTART = enum.auto()
+    UNEXPECTED = enum.auto()
+    ERR_READING_STATUS = enum.auto()
+    ERR_MISSING_STATUS = enum.auto()
+
+
+class RestartStatus(enum.Enum):
+    OK = enum.auto()
+    MISSING = enum.auto()
+    ERROR = enum.auto()
+
+
+@dataclasses.dataclass
+class FinishStatusResult:
+    status: FinishStatus
+    message: orm.Str | None = None
+
+
+@dataclasses.dataclass
+class RestartResult:
+    status: RestartStatus
+    all_restarts: dict[str, orm.RemoteData] = dataclasses.field(default_factory=dict)
+    latest_restart: orm.RemoteData | None = None
+
+
 class IconParser(parser.Parser):
     """Parser for raw Icon calculations."""
 
-    class FinishStatus(enum.Enum):
-        OK = enum.auto()
-        RESTART = enum.auto()
-        UNEXPECTED = enum.auto()
-        ERR_READING_STATUS = enum.auto()
-        ERR_MISSING_STATUS = enum.auto()
-
     def parse(self, **kwargs):  # noqa: ARG002  # kwargs must be there for superclass compatibility
-        remote_folder = self.node.outputs.remote_folder
-        remote_path = pathlib.Path(remote_folder.get_remote_path())
         finish_status = self.parse_finish_status()
+        if finish_status.message:
+            self.out("finish_status", finish_status.message)
 
-        files = remote_folder.listdir()
-        all_restarts_pattern = modelnml.restart_file_pattern()
-        latest_restart_name = modelnml.latest_restart_multifile_link_name()
+        restart_indicated = finish_status is FinishStatus.RESTART or masternml.read_lrestart_write_last(
+            self.node.inputs.master_namelist
+        )
+        restarts = self.parse_restart_files(restart_indicated=restart_indicated)
+        if restarts.all_restarts:
+            self.out("all_restart_files", restarts.all_restarts)
+        if restarts.latest_restart:
+            self.out("latest_restart_file", restarts.latest_restart)
 
-        all_restart_remotedatas = {}
-        for file_name in files:
-            if restart_match := re.match(all_restarts_pattern, file_name):
-                all_restart_remotedatas[f"restart_{restart_match['timestamp']}"] = orm.RemoteData(
-                    computer=self.node.computer,
-                    remote_path=remote_path / file_name,
-                )
-            if file_name == latest_restart_name:
-                self.out(
-                    "latest_restart_file",
-                    orm.RemoteData(computer=self.node.computer, remote_path=remote_path / file_name),
-                )
-
-        self.out("all_restart_files", all_restart_remotedatas)
-
-        match finish_status:
-            case self.FinishStatus.OK:
-                return engine.ExitCode(0)
-            case self.FinishStatus.RESTART:
-                if self.node.latest_restart_file and all_restart_remotedatas:
-                    return engine.ExitCode(0)
-                return self.exit_codes.MISSING_RESTART_FILES
-            case self.FinishStatus.UNEXPECTED:
-                return self.exit_codes.FAILED_CHECK_STATUS
-            case self.FinishStatus.ERR_READING_STATUS:
+        match finish_status.status:
+            case FinishStatus.OK:
+                pass
+            case FinishStatus.RESTART:
+                if restarts.status is not RestartStatus.OK:
+                    return self.exit_codes.PARTIALLY_PARSED
+            case FinishStatus.UNEXPECTED:
+                return self.exit_codes.PARTIALLY_PARSED
+            case FinishStatus.ERR_READING_STATUS:
                 return self.exit_codes.ERROR_READING_STATUS_FILE
-            case self.FinishStatus.ERR_MISSING_STATUS:
+            case FinishStatus.ERR_MISSING_STATUS:
                 return self.exit_codes.ERROR_MISSING_OUTPUT_FILES
 
-    def parse_finish_status(self) -> FinishStatus:
+        return engine.ExitCode(0)
+
+    def parse_finish_status(self) -> FinishStatusResult:
+        result = FinishStatusResult(status=FinishStatus.ERR_MISSING_STATUS, message=None)
         if "finish.status" in self.retrieved.list_object_names():
             try:
                 with self.retrieved.open("finish.status", "r") as status_file:
                     out_status = status_file.read().strip()
-                    self.out("finish_status", orm.Str(out_status))
+                    result.message = orm.Str(out_status)
                     match out_status:
                         case "OK":
-                            return self.FinishStatus.OK
+                            result.status = FinishStatus.OK
                         case "RESTART":
-                            return self.FinishStatus.RESTART
+                            result.status = FinishStatus.RESTART
                         case _:
-                            return self.FinishStatus.UNEXPECTED
-            except OSError:
-                return self.FinishStatus.ERR_READING_STATUS
+                            result.status = FinishStatus.UNEXPECTED
+                            self.logger.info("The 'finish.status' file contained an unexpected value.")
+            except OSError as err:
+                result.status = FinishStatus.ERR_READING_STATUS
+                self.logger.warning(str(err))
+                self.logger.warning("The 'finish.status' file was found but could not be read.")
         else:
-            return self.FinishStatus.ERR_MISSING_STATUS
+            self.logger.warning("The 'finish.status' file could not be found in the output.")
+
+        return result
+
+    def parse_restart_files(self, *, restart_indicated: bool) -> RestartResult:
+        remote_folder = self.node.outputs.remote_folder
+        remote_path = pathlib.Path(remote_folder.get_remote_path())
+
+        files = remote_folder.listdir()
+        result = RestartResult(status=RestartStatus.MISSING)
+        try:
+            all_restarts_pattern = modelnml.read_restart_file_pattern(self.node.inputs.model_namelist)
+            latest_restart_name = modelnml.read_latest_restart_file_link_name(self.node.inputs.model_namelist)
+        except exceptions.SinglefileRestartNotImplementedError:
+            self.logger.info("Can not parse restart file names, singlefile mode is not supported.")
+            if restart_indicated:
+                result.status = RestartStatus.ERROR
+
+        for file_name in files:
+            if restart_match := re.match(all_restarts_pattern, file_name):
+                result.all_restarts[f"restart_{restart_match['timestamp']}"] = orm.RemoteData(
+                    computer=self.node.computer,
+                    remote_path=str(remote_path / file_name),
+                )
+            if file_name == latest_restart_name:
+                result.latest_restart = orm.RemoteData(
+                    computer=self.node.computer,
+                    remote_path=str(remote_path / file_name),
+                )
+
+        if result.all_restarts and result.latest_restart:
+            result.status = RestartStatus.OK
+        else:
+            self.logger.info("Could not find a valid set of restart files.")
+
+        return result

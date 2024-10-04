@@ -49,3 +49,7 @@ def modify_master_nml(master_nml: aiida.orm.SinglefileData, options: aiida.orm.D
     string_buffer = io.StringIO()
     f90nml.write(data, string_buffer)
     return aiida.orm.SinglefileData(io.BytesIO(bytes(string_buffer.getvalue(), "utf8")))
+
+
+def read_lrestart_write_last(master_nml: aiida.orm.SinglefileData) -> bool:
+    return f90nml.reads(master_nml.get_content()).get("master_nml", {}).get("lrestart_write_last", False)
