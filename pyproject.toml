@@ -19,7 +19,7 @@ keywords = []
 license = "MIT"
 name = "aiida-icon"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 [project.entry-points."aiida.calculations"]
 "aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
