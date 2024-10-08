@@ -58,6 +58,11 @@ installer = "uv"
 [tool.hatch.envs.hatch-fmt]
 installer = "pip"
 
+[tool.hatch.envs.hatch-test]
+extra-dependencies = [
+  "aiida-testing-dev"
+]
+
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
