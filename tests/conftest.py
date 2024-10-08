@@ -2,9 +2,17 @@ import pathlib
 
 import aiida
 import aiida.orm
+import aiida_testing.mock_code._hasher
 import pytest
 
 pytest_plugins = ["aiida.tools.pytest_fixtures", "aiida_testing"]
+
+
+# TODO: either contribute to aiida_testing or build a simple version here
+#   to avoid using protected functionality
+class DummyInputHasher(aiida_testing.mock_code._hasher.InputHasher):  # noqa: SLF001 - private member, no other way of doing this
+    def __call__(self, cwd: pathlib.Path):  # noqa: ARG002 - unused method argument, superclass compatibility
+        return "outputs"
 
 
 @pytest.fixture
@@ -21,6 +29,7 @@ def simple_icon(mock_code_factory, root_datapath):
             label="simple-icon",
             entry_point="aiida_icon.icon",
             data_dir_abspath=datapath,
+            hasher=DummyInputHasher,
         ),
         datapath,
     )
@@ -35,6 +44,7 @@ def restarts_missing(mock_code_factory, root_datapath):
             label="restarts-missing",
             entry_point="aiida_icon.icon",
             data_dir_abspath=datapath,
+            hasher=DummyInputHasher,
         ),
         datapath,
     )
@@ -49,6 +59,7 @@ def restarts_present(mock_code_factory, root_datapath):
             label="restarts-present",
             entry_point="aiida_icon.icon",
             data_dir_abspath=datapath,
+            hasher=DummyInputHasher,
         ),
         datapath,
     )

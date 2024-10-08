@@ -66,7 +66,8 @@ extra-dependencies = [
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
-  "pytest"
+  "pytest",
+  "aiida-testing-dev"
 ]
 
 [tool.hatch.envs.types.scripts]
