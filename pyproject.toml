@@ -9,8 +9,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython"
 ]
@@ -21,7 +19,7 @@ keywords = []
 license = "MIT"
 name = "aiida-icon"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 [project.entry-points."aiida.calculations"]
 "aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
@@ -57,9 +55,13 @@ source_pkgs = ["aiida_icon", "tests"]
 [tool.hatch.envs.default]
 installer = "uv"
 
+[tool.hatch.envs.hatch-fmt]
+installer = "pip"
+
 [tool.hatch.envs.types]
 extra-dependencies = [
-  "mypy>=1.0.0"
+  "mypy>=1.0.0",
+  "pytest"
 ]
 
 [tool.hatch.envs.types.scripts]
