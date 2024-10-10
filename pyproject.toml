@@ -55,7 +55,7 @@ source_pkgs = ["aiida_icon", "tests"]
 [tool.hatch.envs.default]
 installer = "uv"
 
-[tool.hatch.envs.hatch-fmt]
+[tool.hatch.envs.hatch-static-analysis]
 installer = "pip"
 
 [tool.hatch.envs.hatch-test]
