@@ -27,18 +27,9 @@ repos:
 
 - repo: local
   hooks:
-  - id: format
-    name: format
-    entry: hatch fmt -f
-    language: system
-    types: [python]
-    exclude: |
-      (?x)^(
-      examples/.*
-      )$
-  - id: lint
-    name: lint
-    entry: hatch fmt -l
+  - id: lint-format
+    name: lint-format
+    entry: hatch fmt
     language: system
     types: [python]
     exclude: |
