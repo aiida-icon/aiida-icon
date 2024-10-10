@@ -27,9 +27,20 @@ repos:
 
 - repo: local
   hooks:
-  - id: lint-format
-    name: lint-format
-    entry: hatch fmt
+  - id: format
+    stages: [pre-commit]
+    name: format
+    entry: hatch fmt -f
+    language: system
+    types: [python]
+    exclude: |
+      (?x)^(
+      examples/.*
+      )$
+  - id: lint
+    stages: [pre-commit]
+    name: lint
+    entry: hatch fmt -l
     language: system
     types: [python]
     exclude: |
