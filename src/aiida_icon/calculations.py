@@ -135,7 +135,7 @@ class IconCalculation(engine.CalcJob):
             ),
         ]
 
-        if self.inputs.wrapper_script:
+        if "wrapper_script" in self.inputs:
             calcinfo.local_copy_list.append(
                 (
                     self.inputs.wrapper_script.uuid,

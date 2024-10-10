@@ -28,6 +28,7 @@ repos:
 - repo: local
   hooks:
   - id: format
+    stages: [pre-commit]
     name: format
     entry: hatch fmt -f
     language: system
@@ -37,6 +38,7 @@ repos:
       examples/.*
       )$
   - id: lint
+    stages: [pre-commit]
     name: lint
     entry: hatch fmt -l
     language: system
