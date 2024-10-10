@@ -14,9 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v3
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -24,7 +21,7 @@ jobs:
 
     - name: install Python dependencies
       run: |
-        uv pip install --system pre-commit hatch
+        pip install pre-commit hatch
 
 
     - name: pre-commit
