@@ -1,111 +1,135 @@
+import dataclasses
+import functools
 import pathlib
 
 import aiida
+import aiida.common
 import aiida.orm
-import aiida_testing.mock_code._hasher
 import pytest
 
-pytest_plugins = ["aiida.tools.pytest_fixtures", "aiida_testing"]
+pytest_plugins = ["aiida.tools.pytest_fixtures"]
 
 
-# TODO: either contribute to aiida_testing or build a simple version here
-#   to avoid using protected functionality
-class DummyInputHasher(aiida_testing.mock_code._hasher.InputHasher):  # noqa: SLF001 - private member, no other way of doing this
-    def __call__(self, cwd: pathlib.Path):  # noqa: ARG002 - unused method argument, superclass compatibility
-        return "outputs"
+@dataclasses.dataclass
+class ParserCase:
+    datapath: pathlib.Path
+    exit_code: int
+    required_output_links: list[str]
+    disallowed_output_links: list[str]
+    finish_status_value: str
+
+
+PARSER_CASES = {
+    "simple_icon_run": ("simple_icon_run", 0, ["finish_status"], [], "OK"),
+    "restarts_present": (
+        "restarts_present",
+        0,
+        ["finish_status", "latest_restart_file", "all_restart_files"],
+        [],
+        "RESTART",
+    ),
+    "restarts_missing": (
+        "restarts_missing",
+        304,
+        ["finish_status"],
+        ["latest_restart_file", "all_restart_files"],
+        "RESTART",
+    ),
+}
+
+
+@pytest.fixture(params=["simple_icon_run", "restarts_present", "restarts_missing"])
+def case_name(request):
+    return request.param
 
 
 @pytest.fixture
-def root_datapath():
-    return pathlib.Path(__file__).parent.absolute() / "data"
+def parser_case(case_name):
+    case_name, *args = PARSER_CASES[case_name]
+    return ParserCase(pathlib.Path(__file__).parent.absolute() / "data" / case_name, *args)
+
+
+@dataclasses.dataclass
+class BuildInputs:
+    fake_icon: aiida.orm.CalcJobNode
+
+    def __setattr__(self, name: str, value: aiida.orm.Data) -> None:
+        if name == "fake_icon":
+            super().__setattr__(name, value)
+        else:
+            self.fake_icon.base.links.add_incoming(
+                source=value,
+                link_type=aiida.common.LinkType.INPUT_CALC,
+                link_label=name,
+            )
+
+
+@dataclasses.dataclass
+class BuildOutputs:
+    fake_icon: aiida.orm.CalcJobNode
+
+    def __setattr__(self, name: str, value: aiida.orm.Data) -> None:
+        if name == "fake_icon":
+            super().__setattr__(name, value)
+        else:
+            value.base.links.add_incoming(
+                link_type=aiida.common.LinkType.CREATE,
+                source=self.fake_icon,
+                link_label=name,
+            )
+
+
+class FakeIconBuilder:
+    node: aiida.orm.CalcJobNode
+
+    def __init__(self, computer: aiida.orm.Computer):
+        self.node = aiida.orm.CalcJobNode(computer=computer, process_type="aiida.calculations:aiida_icon.icon")
+
+    @property
+    def inputs(self) -> BuildInputs:
+        return BuildInputs(self.node)
+
+    @property
+    def outputs(self) -> BuildOutputs:
+        return BuildOutputs(self.node)
+
+    def build(self) -> aiida.orm.CalcJobNode:
+        self.node.store_all()
+        return self.node
 
 
 @pytest.fixture
-def simple_icon(mock_code_factory, root_datapath):
-    """Mock a code for a simple icon run (no restarts)."""
-    datapath = root_datapath / "simple_icon_run"
-    return (
-        mock_code_factory(
-            label="simple-icon",
-            entry_point="aiida_icon.icon",
-            data_dir_abspath=datapath,
-            hasher=DummyInputHasher,
-        ),
-        datapath,
+def icon_result(parser_case, aiida_computer_local):
+    """Mockup a finished calculation for a given set of inputs and outputs."""
+    datapath = parser_case.datapath
+    computer = aiida_computer_local()
+    make_remote = functools.partial(aiida.orm.RemoteData, computer=computer)
+    builder = FakeIconBuilder(computer=computer)
+    builder.inputs.master_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "icon_master.namelist")
+    builder.inputs.model_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "model.namelist")
+    builder.inputs.dynamics_grid_file = make_remote(
+        remote_path=str(datapath.absolute() / "inputs" / "icon_grid_simple.nc")
     )
-
-
-@pytest.fixture
-def restarts_missing(mock_code_factory, root_datapath):
-    """Mock an ICON code for a run that should produce restarts but didn't."""
-    datapath = root_datapath / "restarts_missing"
-    return (
-        mock_code_factory(
-            label="restarts-missing",
-            entry_point="aiida_icon.icon",
-            data_dir_abspath=datapath,
-            hasher=DummyInputHasher,
-        ),
-        datapath,
+    builder.inputs.ecrad_data = make_remote(remote_path=str(datapath.absolute() / "inputs" / "ecrad_data"))
+    builder.inputs.rrtmg_sw = make_remote(remote_path=str(datapath.absolute() / "inputs" / "rrtmg_sw.nc"))
+    builder.inputs.cloud_opt_props = make_remote(
+        remote_path=str(datapath.absolute() / "inputs" / "ECHAM6_CldOptProps.nc")
     )
-
-
-@pytest.fixture
-def restarts_present(mock_code_factory, root_datapath):
-    """Mock an ICON code for a run that should produce restarts and did."""
-    datapath = root_datapath / "restarts_present"
-    return (
-        mock_code_factory(
-            label="restarts-present",
-            entry_point="aiida_icon.icon",
-            data_dir_abspath=datapath,
-            hasher=DummyInputHasher,
-        ),
-        datapath,
+    builder.inputs.dmin_wetgrowth_lookup = make_remote(
+        remote_path=str(datapath.absolute() / "inputs" / "dmin_wetgrowth_lookup.nc")
     )
+    node = builder.build()
+    builder.outputs.remote_folder = make_remote(str(datapath.absolute() / "outputs")).store()
 
+    retrieved = aiida.orm.FolderData()
+    retrieved_files = [
+        "_aiidasubmit.sh",
+        "_scheduler-stderr.txt",
+        "_scheduler-stdout.txt",
+        "finish.status",
+    ]
+    for filename in retrieved_files:
+        retrieved.put_object_from_file(str(datapath.absolute() / "outputs" / filename), filename)
+    builder.outputs.retrieved = retrieved.store()
 
-@pytest.fixture
-def prepare_builder():
-    def preparator(mock_code, datapath):
-        builder = mock_code.get_builder()
-        builder.master_namelist = aiida.orm.SinglefileData(datapath / "icon_master.namelist")
-        builder.model_namelist = aiida.orm.SinglefileData(datapath / "model.namelist")
-        builder.dynamics_grid_file = aiida.orm.RemoteData(
-            computer=mock_code.computer,
-            remote_path=str(datapath.absolute() / "icon_grid_simple.nc"),
-        )
-        builder.ecrad_data = aiida.orm.RemoteData(
-            computer=mock_code.computer,
-            remote_path=str(datapath.absolute() / "ecrad_data"),
-        )
-        builder.rrtmg_sw = aiida.orm.RemoteData(
-            computer=mock_code.computer,
-            remote_path=str(datapath.absolute() / "rrtmg_sw.nc"),
-        )
-        builder.cloud_opt_props = aiida.orm.RemoteData(
-            computer=mock_code.computer,
-            remote_path=str(datapath.absolute() / "ECHAM6_CldOptProps.nc"),
-        )
-        builder.dmin_wetgrowth_lookup = aiida.orm.RemoteData(
-            computer=mock_code.computer,
-            remote_path=str(datapath.absolute() / "dmin_wetgrowth_lookup.nc"),
-        )
-        return builder
-
-    return preparator
-
-
-@pytest.fixture
-def simple_icon_builder(simple_icon, prepare_builder):
-    return prepare_builder(*simple_icon)
-
-
-@pytest.fixture
-def restarts_missing_builder(restarts_missing, prepare_builder):
-    return prepare_builder(*restarts_missing)
-
-
-@pytest.fixture
-def restarts_present_builder(restarts_present, prepare_builder):
-    return prepare_builder(*restarts_present)
+    return node

@@ -1,42 +1,29 @@
 import pathlib
 
-import aiida
-import aiida.engine
+import pytest
+
+from aiida_icon import calculations
 
 
-def test_parser_simple(simple_icon_builder):
-    """Parsing should pass in the simplest possible case"""
-    results, node = aiida.engine.run_get_node(simple_icon_builder)
+def test_parser_simple(parser_case, icon_result):
+    """Parsed output links and exit code should match expectations."""
+    parser = calculations.IconParser(icon_result)
+    exit_code = parser.parse()
 
-    assert node.is_finished_ok
-    assert node.outputs.finish_status.value == "OK"
-    assert node.exit_code is None
+    assert exit_code.status == parser_case.exit_code
 
-
-def test_parser_missing_restarts(restarts_missing_builder):
-    """
-    Parsing should fail but not except when restart multifiles are expected and not found.
-
-    Everything but the restart files should still be parsed normally.
-    """
-    results, node = aiida.engine.run_get_node(restarts_missing_builder)
-
-    assert not node.is_finished_ok
-    assert node.outputs.finish_status.value == "RESTART"
-    assert "lastest_restart_file" not in node.outputs
-    assert "all_restart_files" not in node.outputs
-    assert node.exit_code.status == 304
+    assert all(link in parser.outputs for link in parser_case.required_output_links)
+    assert all(link not in parser.outputs for link in parser_case.disallowed_output_links)
+    assert parser.outputs.finish_status.value == parser_case.finish_status_value
 
 
-def test_parser_present_restarts(restarts_present_builder):
-    """Parsing should pass when restart multifiles are expected and found."""
-    results, node = aiida.engine.run_get_node(restarts_present_builder)
-
-    assert node.is_finished_ok
-    assert node.outputs.finish_status.value == "RESTART"
-    assert pathlib.Path(node.outputs.latest_restart_file.get_remote_path()).name == "multifile_restart_atm.mfr"
+@pytest.mark.parametrize("case_name", ["restarts_present"])
+def test_additional_restart_parsing(case_name, parser_case, icon_result):
+    """Check the contents of restarts related parsing outputs."""
+    parser = calculations.IconParser(icon_result)
+    parser.parse()
+    assert pathlib.Path(parser.outputs.latest_restart_file.get_remote_path()).name == "multifile_restart_atm.mfr"
     assert (
-        pathlib.Path(node.outputs.all_restart_files["restart_20000101T030000Z"].get_remote_path()).name
+        pathlib.Path(parser.outputs.all_restart_files["restart_20000101T030000Z"].get_remote_path()).name
         == "multifile_restart_atm_20000101T030000Z.mfr"
     )
-    assert node.exit_code is None

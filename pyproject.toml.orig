@@ -12,7 +12,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython"
 ]
-dependencies = ["aiida-core>=2.5", "click", "f90nml"]
+dependencies = ["aiida-core>=2.5", "f90nml"]
 description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
 dynamic = ["version"]
 keywords = []
@@ -55,19 +55,20 @@ source_pkgs = ["aiida_icon", "tests"]
 [tool.hatch.envs.default]
 installer = "uv"
 
+<<<<<<< HEAD
 [tool.hatch.envs.hatch-fmt]
 installer = "pip"
-
+=======
 [tool.hatch.envs.hatch-test]
 extra-dependencies = [
   "aiida-testing-dev"
 ]
+>>>>>>> 7073a95 (add some parser tests.)
 
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
-  "pytest",
-  "aiida-testing-dev"
+  "pytest"
 ]
 
 [tool.hatch.envs.types.scripts]
@@ -85,6 +86,3 @@ module = "f90nml"
 
 [tool.ruff]
 exclude = ["examples"]
-
-[tool.ruff.lint.extend-per-file-ignores]
-"tests/**/*" = ["ARG001"]
