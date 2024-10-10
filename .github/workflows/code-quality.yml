@@ -25,7 +25,7 @@ jobs:
 
 
     - name: hatch-static-analysis
-      run: hatch fmt
+      run: hatch fmt --check
 
     - name: pre-commit
       run: pre-commit run --all-files --hook-stage manual
