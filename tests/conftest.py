@@ -7,6 +7,8 @@ import aiida.common
 import aiida.orm
 import pytest
 
+from aiida_icon.calculations import IconCalculation
+
 pytest_plugins = ["aiida.tools.pytest_fixtures"]
 
 
@@ -133,3 +135,22 @@ def icon_result(parser_case, aiida_computer_local):
     builder.outputs.retrieved = retrieved.store()
 
     return node
+
+
+@pytest.fixture
+def icon_calc(aiida_computer_local, aiida_code_installed):
+    """Create an IconCalculation which is ready to call .prepare_for_submission()."""
+    code = aiida_code_installed(default_calc_job_plugin="aiida_icon.icon", computer=aiida_computer_local())
+    datapath = pathlib.Path(__file__).parent.absolute() / "data" / "simple_icon_run"
+    builder = code.get_builder()
+    make_remote = functools.partial(aiida.orm.RemoteData, computer=code.computer)
+    builder.master_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "icon_master.namelist")
+    builder.model_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "model.namelist")
+    builder.dynamics_grid_file = make_remote(remote_path=str(datapath.absolute() / "inputs" / "icon_grid_simple.nc"))
+    builder.ecrad_data = make_remote(remote_path=str(datapath.absolute() / "inputs" / "ecrad_data"))
+    builder.rrtmg_sw = make_remote(remote_path=str(datapath.absolute() / "inputs" / "rrtmg_sw.nc"))
+    builder.cloud_opt_props = make_remote(remote_path=str(datapath.absolute() / "inputs" / "ECHAM6_CldOptProps.nc"))
+    builder.dmin_wetgrowth_lookup = make_remote(
+        remote_path=str(datapath.absolute() / "inputs" / "dmin_wetgrowth_lookup.nc")
+    )
+    return IconCalculation(dict(builder))

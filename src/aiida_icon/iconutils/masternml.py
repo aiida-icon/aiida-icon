@@ -6,6 +6,8 @@ import aiida.engine
 import aiida.orm
 import f90nml
 
+from aiida_icon.iconutils import namelists
+
 
 @dataclasses.dataclass
 class OptionsMixin:
@@ -51,5 +53,5 @@ def modify_master_nml(master_nml: aiida.orm.SinglefileData, options: aiida.orm.D
     return aiida.orm.SinglefileData(io.BytesIO(bytes(string_buffer.getvalue(), "utf8")))
 
 
-def read_lrestart_write_last(master_nml: aiida.orm.SinglefileData) -> bool:
-    return f90nml.reads(master_nml.get_content()).get("master_nml", {}).get("lrestart_write_last", False)
+def read_lrestart_write_last(master_nml: namelists.NMLInput) -> bool:
+    return namelists.namelists_data(master_nml).get("master_nml", {}).get("lrestart_write_last", False)

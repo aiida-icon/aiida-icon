@@ -84,19 +84,8 @@ class IconCalculation(engine.CalcJob):
         model_namelist_data = f90nml.reads(self.inputs.model_namelist.get_content())
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
 
-        def get_output_dir(out_stream_spec: f90nml.namelist.Namelist) -> pathlib.Path:
-            """Replicate ICON logic in forming the filenames to get the output dir"""
-
-            filename_format = out_stream_spec.get('filename_format', '<output_filename>_XXX_YYY')
-            output_filename = out_stream_spec.get('output_filename', '')
-            return pathlib.Path(filename_format.replace('<output_filename>', output_filename)).parent
-
-        # if only 1 output stream, make it a list
-        if isinstance(specs := model_namelist_data["output_nml"], f90nml.namelist.Namelist):
-            specs = [specs]
-
-        for stream_spec in specs:
-            folder.get_subfolder(get_output_dir(stream_spec), create=True)
+        for output_folder in modelnml.read_output_stream_paths(model_namelist_data):
+            folder.get_subfolder(output_folder, create=True)
 
         codeinfo = datastructures.CodeInfo()
         codeinfo.code_uuid = self.inputs.code.uuid

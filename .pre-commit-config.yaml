@@ -1,9 +1,9 @@
 default_language_version:
-  python: python3.10
+  python: python3.12
 
 repos:
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.6.0
+  rev: v2.14.0
   hooks:
   - id: pretty-format-toml
     args: [--autofix]
@@ -11,13 +11,13 @@ repos:
     args: [--autofix, --preserve-quotes, --indent, "2"]
 
 - repo: https://github.com/pre-commit/mirrors-prettier
-  rev: v3.0.0-alpha.4
+  rev: v4.0.0-alpha.8
   hooks:
   - id: prettier
     types_or: [markdown, json]
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v5.0.0
   hooks:
   - id: check-case-conflict
   - id: check-merge-conflict
