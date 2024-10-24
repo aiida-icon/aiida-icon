@@ -1,0 +1,31 @@
+name: static-analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # always
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: pyproject.toml
+
+    - name: install Python dependencies
+      run: |
+        pip install pre-commit hatch
+
+
+    - name: hatch-static-analysis
+      run: hatch fmt --check
+
+    - name: pre-commit
+      run: pre-commit run --all-files --hook-stage manual
