@@ -84,8 +84,8 @@ class IconCalculation(engine.CalcJob):
         model_namelist_data = f90nml.reads(self.inputs.model_namelist.get_content())
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
 
-        for output_spec in model_namelist_data["output_nml"]:
-            folder.get_subfolder(pathlib.Path(output_spec["output_filename"]).name, create=True)
+        for output_folder in modelnml.read_output_stream_paths(model_namelist_data):
+            folder.get_subfolder(output_folder, create=True)
 
         codeinfo = datastructures.CodeInfo()
         codeinfo.code_uuid = self.inputs.code.uuid

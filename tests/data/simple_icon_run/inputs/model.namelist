@@ -16,9 +16,9 @@
 
 ! output namelist: specify output of 2D fields  ------------------------------
 &output_nml
- output_filename             =              './simple_icon_atm_2d/'  ! file name base
+ output_filename             =              './simple_icon_run_atm_2d/'  ! file name base
 /
 
 &output_nml
- output_filename             =             './simple_icon_atm_3d_pl/'! file name base
+ output_filename             =             './simple_icon_run_atm_3d_pl/'! file name base
 /
