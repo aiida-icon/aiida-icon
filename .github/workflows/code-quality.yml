@@ -23,9 +23,11 @@ jobs:
       run: |
         pip install pre-commit hatch
 
-
     - name: hatch-static-analysis
       run: hatch fmt --check
+
+    - name: hatch-types
+      run: hatch env run -e types check
 
     - name: pre-commit
       run: pre-commit run --all-files --hook-stage manual

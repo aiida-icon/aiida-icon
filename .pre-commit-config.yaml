@@ -48,6 +48,7 @@ repos:
       examples/.*
       )$
   - id: types
+    stages: [pre-commit]
     name: types
     entry: hatch env run -e types check
     language: system
