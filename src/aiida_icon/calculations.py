@@ -26,6 +26,7 @@ class IconCalculation(engine.CalcJob):
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
         spec.input("model_namelist", valid_type=orm.SinglefileData)
+        spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
         spec.input(
             "dynamics_grid_file",
@@ -109,6 +110,14 @@ class IconCalculation(engine.CalcJob):
                 "rrtmg_sw.nc",
             ),
         ]
+        if "restart_file" in self.inputs:
+            calcinfo.remote_symlink_list.append(
+                (
+                    self.inputs.code.computer.uuid,
+                    self.inputs.restart_file.get_remote_path(),
+                    modelnml.read_latest_restart_file_link_name(model_namelist_data),
+                )
+            )
         calcinfo.remote_copy_list = [
             (
                 self.inputs.code.computer.uuid,
@@ -121,7 +130,6 @@ class IconCalculation(engine.CalcJob):
                 "dmin_wetgrowth_lookup.nc",
             ),
         ]
-
         calcinfo.local_copy_list = [
             (
                 self.inputs.master_namelist.uuid,
