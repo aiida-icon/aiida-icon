@@ -31,10 +31,11 @@ jobs:
         name: aiida-icon-dist
         path: ./dist/**
 
-  test-publish:
-    name: upload release to test-pypi
+  publish:
+    name: upload release to pypi
     runs-on: ubuntu-latest
-    environment: test-release
+    needs: build
+    environment: release
     permissions:
       id-token: write
     steps:
@@ -44,7 +45,5 @@ jobs:
         name: aiida-icon-dist
         path: dist
 
-    - name: Publish package to test-pypi
+    - name: Publish package to pypi
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://test.pypi.org/legacy/
