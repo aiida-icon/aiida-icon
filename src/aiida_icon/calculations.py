@@ -46,7 +46,7 @@ class IconCalculation(engine.CalcJob):
             "num_cores_per_mpiproc": 2,
         }
         options["withmpi"].default = True  # type: ignore[index] # guaranteed correct by aiida-core
-        options["parser_name"].default = "aiida_icon.icon"  # type: ignore[index] # guaranteed correct by aiida-core
+        options["parser_name"].default = "icon.icon"  # type: ignore[index] # guaranteed correct by aiida-core
         spec.exit_code(
             300,
             "ERROR_MISSING_OUTPUT_FILES",
