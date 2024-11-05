@@ -85,7 +85,7 @@ class FakeIconBuilder:
     node: aiida.orm.CalcJobNode
 
     def __init__(self, computer: aiida.orm.Computer):
-        self.node = aiida.orm.CalcJobNode(computer=computer, process_type="aiida.calculations:aiida_icon.icon")
+        self.node = aiida.orm.CalcJobNode(computer=computer, process_type="aiida.calculations:icon.icon")
 
     @property
     def inputs(self) -> BuildInputs:
@@ -140,7 +140,7 @@ def icon_result(parser_case, aiida_computer_local):
 @pytest.fixture
 def icon_calc(aiida_computer_local, aiida_code_installed):
     """Create an IconCalculation which is ready to call .prepare_for_submission()."""
-    code = aiida_code_installed(default_calc_job_plugin="aiida_icon.icon", computer=aiida_computer_local())
+    code = aiida_code_installed(default_calc_job_plugin="icon.icon", computer=aiida_computer_local())
     datapath = pathlib.Path(__file__).parent.absolute() / "data" / "simple_icon_run"
     builder = code.get_builder()
     make_remote = functools.partial(aiida.orm.RemoteData, computer=code.computer)
