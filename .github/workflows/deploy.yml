@@ -35,7 +35,7 @@ jobs:
     name: upload release to test-pypi
     runs-on: ubuntu-latest
     environment: test-release
-    permission:
+    permissions:
       id-token: write
     steps:
     - name: retrieve distribution artifacts
