@@ -50,7 +50,7 @@ repos:
   - id: types
     stages: [pre-commit]
     name: types
-    entry: hatch env run -e types check
+    entry: hatch run types:check
     language: system
     types: [python]
     exclude: |
