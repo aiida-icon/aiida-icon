@@ -1,7 +1,9 @@
+import typing
+
 import aiida.orm
 import f90nml
 
-type NMLInput = aiida.orm.SinglefileData | f90nml.namelist.Namelist
+NMLInput: typing.TypeAlias = aiida.orm.SinglefileData | f90nml.namelist.Namelist
 
 
 def namelists_data(
