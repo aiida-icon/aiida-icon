@@ -13,7 +13,8 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: Implementation :: CPython"
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Framework :: AiiDA"
 ]
 dependencies = ["aiida-core>=2.5", "click", "f90nml"]
 description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
@@ -22,14 +23,12 @@ keywords = []
 license = "MIT"
 name = "aiida-icon"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.entry-points."aiida.calculations"]
-"aiida_icon.icon" = "aiida_icon.calculations:IconCalculation"
 "icon.icon" = "aiida_icon.calculations:IconCalculation"
 
 [project.entry-points."aiida.parsers"]
-"aiida_icon.icon" = "aiida_icon.calculations:IconParser"
 "icon.icon" = "aiida_icon.calculations:IconParser"
 
 [project.urls]
