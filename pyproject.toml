@@ -33,7 +33,7 @@ requires-python = ">=3.9"
 "icon.icon" = "aiida_icon.calculations:IconParser"
 
 [project.urls]
-Documentation = "https://github.com/DropD/aiida-icon#readme"
+Documentation = "https://aiida-icon.github.io/aiida-icon/"
 Issues = "https://github.com/DropD/aiida-icon/issues"
 Source = "https://github.com/DropD/aiida-icon"
 
