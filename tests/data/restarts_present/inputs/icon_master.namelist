@@ -1,11 +1,11 @@
 &master_nml
- lrestart               =  .true.
+ lrestart               =  .false.
  read_restart_namelists =  .true.
 /
 &master_time_control_nml
  calendar             = 'proleptic gregorian'
  experimentStartDate  = '2000-01-01T00:00:00Z'
- restartTimeIntval    = 'P1D'
+ restartTimeIntval    = 'PT30S'
  checkpointTimeIntval = 'P1D'
  experimentStopDate = '2000-01-01T00:00:30Z'
 /
