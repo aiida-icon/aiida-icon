@@ -80,7 +80,8 @@ python = ["3.10", "3.11", "3.12"]
 extra-dependencies = [
   "mypy>=1.0.0",
   "pytest",
-  "aiida-testing-dev"
+  "aiida-testing-dev",
+  "types-requests"
 ]
 
 [tool.hatch.envs.types.scripts]
@@ -97,7 +98,7 @@ ignore_missing_imports = true
 module = "f90nml"
 
 [tool.ruff]
-exclude = ["examples"]
+exclude = ["examples", ".spack*"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*" = ["ARG001"]

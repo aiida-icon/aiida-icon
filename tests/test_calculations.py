@@ -19,7 +19,7 @@ def test_prepare_for_calc(icon_calc, tmp_path):
 
     assert outputs_2d.exists()
     assert outputs_3d.exists()
-    assert "simple_icon_run.namelist" in local_copy_names
+    assert "model.namelist" in local_copy_names
     assert "icon_grid_simple.nc" in remote_link_names
     assert "./ecrad_data" in remote_link_names
 

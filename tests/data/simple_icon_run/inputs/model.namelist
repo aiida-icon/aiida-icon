@@ -1,6 +1,10 @@
+&run_nml
+ dtime                       = 300           ! time step of 300 seconds
+/
+
 ! grid_nml: horizontal grid --------------------------------------------------
 &grid_nml
- dynamics_grid_filename      =                   " icon_grid_simple.nc" ! array of the grid filenames for the dycore
+ dynamics_grid_filename      =                   "icon_grid_simple.nc" ! array of the grid filenames for the dycore
 /
 
 ! radiation_nml: radiation scheme ---------------------------------------------
@@ -17,8 +21,10 @@
 ! output namelist: specify output of 2D fields  ------------------------------
 &output_nml
  output_filename             =              './simple_icon_run_atm_2d/'  ! file name base
+ steps_per_file              =              1
 /
 
 &output_nml
  output_filename             =             './simple_icon_run_atm_3d_pl/'! file name base
+ steps_per_file              =             1
 /
