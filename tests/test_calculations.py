@@ -6,11 +6,11 @@ from aiida.common import folders
 from aiida_icon import calculations
 
 
-def test_prepare_for_calc(icon_calc, tmp_path):
+def test_prepare_for_calc(mock_icon_calc, tmp_path):
     prepare_path = tmp_path / "test_prepare_simple"
     prepare_path.mkdir()
     sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
-    calcinfo = icon_calc.presubmit(sandbox_folder)
+    calcinfo = mock_icon_calc.presubmit(sandbox_folder)
 
     outputs_2d = sandbox_folder.get_subfolder("simple_icon_run_atm_2d", create=False)
     outputs_3d = sandbox_folder.get_subfolder("simple_icon_run_atm_3d_pl", create=False)
@@ -19,7 +19,7 @@ def test_prepare_for_calc(icon_calc, tmp_path):
 
     assert outputs_2d.exists()
     assert outputs_3d.exists()
-    assert "simple_icon_run.namelist" in local_copy_names
+    assert "model.namelist" in local_copy_names
     assert "icon_grid_simple.nc" in remote_link_names
     assert "./ecrad_data" in remote_link_names
 
