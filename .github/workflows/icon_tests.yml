@@ -1,0 +1,81 @@
+name: unittests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # always
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120 # when icon needs to be rebuild it can take 70 minutes
+    strategy:
+      matrix:
+        python-version: ["3.12"]  # TODO add other py3.10-3.13
+        aiida-version: ['stable']
+    services:
+      postgres:
+        image: postgres:10
+        env:
+          POSTGRES_DB: test_aiida
+          POSTGRES_PASSWORD: ''
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+        - 5432:5432
+      rabbitmq:
+        image: rabbitmq:latest
+        ports:
+        - 5672:5672
+    environment: testing
+
+    permissions:
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Spack
+      uses: spack/setup-spack@v2
+      with:
+        buildcache: true
+
+    - name: Install
+      env:
+        SPACK_OCI_USER: aiida-icon
+        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+      run: |
+        sudo apt install gcc-11 g++-11 gfortran-11
+        spack -e . add python@${{matrix.python-version}}
+        spack -e . install
+
+    - name: Run
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        spack find
+
+    - name: Push packages and update index
+      env:
+        SPACK_OCI_USER: aiida-icon
+        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+      run: spack -e . buildcache push --base-image ubuntu:latest --update-index local-buildcache
+      if: ${{ !cancelled() }}
+
+    - name: Install Python dependencies
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        pip install --upgrade pip 
+        pip install hatch
+
+    - name: Run icon tests
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        hatch test -py ${{matrix.python-version}} -n auto -v -m requires_icon tests

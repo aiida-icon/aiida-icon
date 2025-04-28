@@ -1,7 +1,7 @@
 spack:
   view: /opt/view
   specs:
-  - icon ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp ~mpi
+  - icon ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
 
   'compilers:':
   - compiler:
@@ -33,5 +33,5 @@ spack:
       binary: true
       signed: false
       access_pair:
-        id: GITHUB_USER
-        secret_variable: GITHUB_TOKEN #  note developer settings -> token classics with "write:packages" permission and then add this token as secret to repo
+        id: SPACK_OCI_USER
+        secret_variable: SPACK_OCI_TOKEN #  NOTE to generate a new token one has to go to developer settings -> token classics with "write:packages" permission and then add this token as secret to the repo

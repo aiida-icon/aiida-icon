@@ -145,7 +145,7 @@ def icon_result(parser_case, aiida_computer_local):
 
 
 @pytest.fixture
-def icon_calc(datapath, aiida_computer_local, aiida_code_installed):
+def mock_icon_calc(datapath, aiida_computer_local, aiida_code_installed):
     """Create an IconCalculation which is ready to call .prepare_for_submission()."""
     code = aiida_code_installed(default_calc_job_plugin="icon.icon", computer=aiida_computer_local())
     inputs_path = datapath.absolute() / "simple_icon_run" / "inputs"
@@ -159,3 +159,4 @@ def icon_calc(datapath, aiida_computer_local, aiida_code_installed):
     builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))
     builder.dmin_wetgrowth_lookup = make_remote(remote_path=str(inputs_path / "dmin_wetgrowth_lookup.nc"))
     return IconCalculation(dict(builder))
+

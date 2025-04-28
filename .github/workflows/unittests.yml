@@ -9,10 +9,10 @@ on:
 jobs:
   unittests:
     runs-on: ubuntu-latest
-    timeout-minutes: 120 # when icon needs to be rebuild it can take 70 minutes
+    timeout-minutes: 15
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
         aiida-version: ['stable']
     services:
       postgres:
@@ -34,57 +34,18 @@ jobs:
         - 5672:5672
     environment: testing
 
-    permissions:
-      packages: write
-
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Spack
-      uses: spack/setup-spack@v2
+    - name: Set up Python ${{matrix.python-version}}
+      uses: actions/setup-python@v5
       with:
-        buildcache: true  # Configure oci://ghcr.io/spack/github-actions-buildcache
+        python-version: ${{matrix.python-version}}
 
-    - name: Install
-      env:
-        GITHUB_USER: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+    - name: install Python dependencies
       run: |
-        sudo apt install gcc-11 g++-11 gfortran-11
-        which gcc-11
-        which g++-11
-        which gfortran-11
-        spack -e . add python@${{matrix.python-version}}
-        spack -e . install
-
-    - name: Run
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        spack find
-
-    - name: Push packages and update index
-      env:
-        GITHUB_USER: agoscinski
-        GITHUB_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
-      run: spack -e . buildcache push --base-image ubuntu:latest --update-index local-buildcache
-      if: ${{ !cancelled() }}
-
-    - name: Install Python dependencies
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        which python
-        which pip
         pip install --upgrade pip 
         pip install hatch
 
     - name: run unittests
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        hatch test -py ${{matrix.python-version}} -n auto -v tests
-
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: ${{ failure() }}
+      run: hatch test -py ${{matrix.python-version}} -n auto -v
