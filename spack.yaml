@@ -1,7 +1,8 @@
 spack:
   view: /opt/view
   specs:
-  - icon ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
+  - python 
+  #- icon ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
 
   'compilers:':
   - compiler:
@@ -29,7 +30,7 @@ spack:
 
   mirrors:
     local-buildcache:
-      url: oci://ghcr.io/agoscinski/spack-buildcache
+      url: oci://ghcr.io/aiida-icon/spack-buildcache
       binary: true
       signed: false
       access_pair:
