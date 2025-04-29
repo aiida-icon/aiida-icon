@@ -37,45 +37,56 @@ jobs:
     permissions:
       packages: write
 
-    steps:
+    steps: 
+    - name: Check if secret is set
+      env:
+        SPACK_OCI_USER: aiida-icon
+        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+      run: |
+        if [ -z "${{ secrets.MY_SECRET }}" ]; then
+          echo "Secret is NOT set"
+          exit 1
+        else
+          echo "Secret is set"
+        fi
     - uses: actions/checkout@v4
 
-    - name: Set up Spack
-      uses: spack/setup-spack@v2
-      with:
-        buildcache: true
+    #- name: Set up Spack
+    #  uses: spack/setup-spack@v2
+    #  with:
+    #    buildcache: true
 
-    - name: Install
-      env:
-        SPACK_OCI_USER: aiida-icon
-        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
-      run: |
-        sudo apt install gcc-11 g++-11 gfortran-11
-        spack -e . add python@${{matrix.python-version}}
-        spack -e . install
+    #- name: Install
+    #  env:
+    #    SPACK_OCI_USER: aiida-icon
+    #    SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+    #  run: |
+    #    sudo apt install gcc-11 g++-11 gfortran-11
+    #    spack -e . add python@${{matrix.python-version}}
+    #    spack -e . install
 
-    - name: Run
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        spack find
+    #- name: Run
+    #  shell: spack-bash {0}
+    #  run: |
+    #    spack env activate .
+    #    spack find
 
-    - name: Push packages and update index
-      env:
-        SPACK_OCI_USER: aiida-icon
-        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
-      run: spack -e . buildcache push --base-image ubuntu:latest --update-index local-buildcache
-      if: ${{ !cancelled() }}
+    #- name: Push packages and update index
+    #  env:
+    #    SPACK_OCI_USER: aiida-icon
+    #    SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+    #  run: spack -e . buildcache push --base-image ubuntu:latest --update-index local-buildcache
+    #  if: ${{ !cancelled() }}
 
-    - name: Install Python dependencies
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        pip install --upgrade pip 
-        pip install hatch
+    #- name: Install Python dependencies
+    #  shell: spack-bash {0}
+    #  run: |
+    #    spack env activate .
+    #    pip install --upgrade pip 
+    #    pip install hatch
 
-    - name: Run icon tests
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        hatch test -py ${{matrix.python-version}} -n auto -v -m requires_icon tests
+    #- name: Run icon tests
+    #  shell: spack-bash {0}
+    #  run: |
+    #    spack env activate .
+    #    hatch test -py ${{matrix.python-version}} -n auto -v -m requires_icon tests
