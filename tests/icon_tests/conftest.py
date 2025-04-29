@@ -1,12 +1,15 @@
-import logging
-import subprocess
-import requests
-import pathlib
-import pytest
-import aiida
 import functools
+import logging
+import pathlib
+import subprocess
+import typing
+
+import aiida
+import pytest
+import requests
 
 LOGGER = logging.getLogger(__name__)
+
 
 class DownloadError(RuntimeError):
     def __init__(self, url: str, response: requests.Response):
@@ -38,6 +41,7 @@ def icon_grid_simple_path(pytestconfig):
 
     return icon_grid_path
 
+
 @pytest.fixture
 def icon_filepath_executable() -> str:
     which_icon = subprocess.run(["which", "icon"], capture_output=True, check=False)
@@ -45,20 +49,33 @@ def icon_filepath_executable() -> str:
         msg = "Could not find icon executable."
         raise FileNotFoundError(msg)
 
-    filepath_executable = which_icon.stdout.decode().strip()
-    return filepath_executable
+    return which_icon.stdout.decode().strip()
+
 
 @pytest.fixture
-def simple_icon_run_builder(aiida_code_installed: aiida.orm.InstalledCode, aiida_computer_local: aiida.orm.Computer, icon_filepath_executable: str, datapath: pathlib.Path, icon_grid_simple_path: pathlib.Path) -> aiida.engine.ProcessBuilder:
+def simple_icon_run_builder(
+    aiida_code_installed: typing.Callable[..., aiida.orm.InstalledCode],
+    aiida_computer_local: typing.Callable[[], aiida.orm.Computer],
+    icon_filepath_executable: str,
+    datapath: pathlib.Path,
+    icon_grid_simple_path: pathlib.Path,
+) -> aiida.engine.ProcessBuilder:
     localhost_computer = aiida_computer_local()
-    code = aiida_code_installed(default_calc_job_plugin="icon.icon", computer=localhost_computer, filepath_executable=icon_filepath_executable, with_mpi=False)
+    code = aiida_code_installed(
+        default_calc_job_plugin="icon.icon",
+        computer=localhost_computer,
+        filepath_executable=icon_filepath_executable,
+        with_mpi=False,
+    )
 
     inputs_path = datapath.absolute() / "simple_icon_run" / "inputs"
     builder = code.get_builder()
     make_remote = functools.partial(aiida.orm.RemoteData, computer=code.computer)
     builder.master_namelist = aiida.orm.SinglefileData(inputs_path / "icon_master.namelist")
     builder.model_namelist = aiida.orm.SinglefileData(inputs_path / "model.namelist")
-    builder.dynamics_grid_file = aiida.orm.RemoteData(remote_path=str(icon_grid_simple_path), computer=localhost_computer)
+    builder.dynamics_grid_file = aiida.orm.RemoteData(
+        remote_path=str(icon_grid_simple_path), computer=localhost_computer
+    )
     builder.ecrad_data = make_remote(remote_path=str(inputs_path / "ecrad_data"))
     builder.rrtmg_sw = make_remote(remote_path=str(inputs_path / "rrtmg_sw.nc"))
     builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))

@@ -13,10 +13,13 @@ from aiida_icon.calculations import IconCalculation
 
 pytest_plugins = ["aiida.tools.pytest_fixtures"]
 
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "requires_icon: marks test to require icon installation")
 
+
 # Fixtures
+
 
 @dataclasses.dataclass
 class ParserCase:
@@ -165,4 +168,3 @@ def mock_icon_calc(datapath, aiida_computer_local, aiida_code_installed):
     builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))
     builder.dmin_wetgrowth_lookup = make_remote(remote_path=str(inputs_path / "dmin_wetgrowth_lookup.nc"))
     return IconCalculation(dict(builder))
-
