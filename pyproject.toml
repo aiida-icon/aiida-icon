@@ -72,12 +72,10 @@ extra-dependencies = [
 extra-dependencies = [
   "aiida-testing-dev"
 ]
+extra-args = ["-m 'not requires_icon'"]
 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.10", "3.11", "3.12"]
-
-[tool.hatch.envs.hatch-test]
-extra-args = ["-m 'not requires_icon'"]
 
 [tool.hatch.envs.types]
 extra-dependencies = [
