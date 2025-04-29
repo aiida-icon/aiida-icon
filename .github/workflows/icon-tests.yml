@@ -45,7 +45,7 @@ jobs:
       with:
         buildcache: true
 
-    - name: Install
+    - name: Install Python and ICON
       env:
         SPACK_OCI_USER: aiida-icon
         SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
@@ -54,27 +54,21 @@ jobs:
         spack -e . add python@${{matrix.python-version}}
         spack -e . install
 
-    - name: Run
-      shell: spack-bash {0}
-      run: |
-        spack env activate .
-        spack find
-
-    - name: Push packages and update index
+    - name: Push installation to buildcache and update index
       env:
         SPACK_OCI_USER: aiida-icon
         SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
       run: spack -e . buildcache push --base-image ubuntu:latest --update-index local-buildcache
       if: ${{ !cancelled() }}
 
-    - name: Install Python dependencies
+    - name: Install hatch
       shell: spack-bash {0}
       run: |
         spack env activate .
         pip install --upgrade pip 
         pip install hatch
 
-    - name: Run icon tests
+    - name: Run ICON tests
       shell: spack-bash {0}
       run: |
         spack env activate .

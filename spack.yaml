@@ -1,8 +1,7 @@
 spack:
   view: /opt/view
   specs:
-  - python 
-  #- icon ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
+  - icon ~aes ~jsbach ~ocean ~coupling ~rte-rrtmgp
 
   'compilers:':
   - compiler:
