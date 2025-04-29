@@ -32,12 +32,11 @@ jobs:
         image: rabbitmq:latest
         ports:
         - 5672:5672
-    environment: testing
 
     permissions:
       packages: write
 
-    steps: 
+    steps:
     - uses: actions/checkout@v4
 
     - name: Set up Spack

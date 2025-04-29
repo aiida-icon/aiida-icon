@@ -32,7 +32,6 @@ jobs:
         image: rabbitmq:latest
         ports:
         - 5672:5672
-    environment: testing
 
     steps:
     - uses: actions/checkout@v4
