@@ -43,7 +43,7 @@ jobs:
         SPACK_OCI_USER: aiida-icon
         SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
       run: |
-        if [ -z "${{ env.SPACK_OCI_TOKEN }}" ]; then
+        if [ -z "$SPACK_OCI_TOKEN" ]; then
           echo "Secret is NOT set"
           exit 1
         else
