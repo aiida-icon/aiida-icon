@@ -34,6 +34,24 @@ jobs:
         - 5672:5672
 
     steps:
+    - name: Check if secret is set
+      env:
+        SPACK_OCI_USER: aiida-icon
+        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+      run: |
+        if [ -z "$SPACK_OCI_TOKEN" ]; then
+          echo "Secret is NOT set"
+          exit 1
+        else
+          echo "Secret is set"
+        fi
+        if [ -z "$SPACK_OCI_USER" ]; then
+          echo "User is NOT set"
+          exit 1
+        else
+          echo "User is set"
+        fi
+
     - uses: actions/checkout@v4
 
     - name: Set up Python ${{matrix.python-version}}
