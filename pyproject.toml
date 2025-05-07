@@ -98,6 +98,11 @@ exclude = ['^examples/.*']
 ignore_missing_imports = true
 module = "f90nml"
 
+[tool.pytest.ini_options]
+markers = [
+  'requires_icon: marks test to require icon installation'
+]
+
 [tool.ruff]
 exclude = ["examples", ".spack*"]
 

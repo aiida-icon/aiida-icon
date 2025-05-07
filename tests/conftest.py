@@ -14,10 +14,6 @@ from aiida_icon.calculations import IconCalculation
 pytest_plugins = ["aiida.tools.pytest_fixtures"]
 
 
-def pytest_configure(config):
-    config.addinivalue_line("markers", "requires_icon: marks test to require icon installation")
-
-
 # Fixtures
 
 
