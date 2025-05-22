@@ -12,10 +12,10 @@ from aiida import load_profile
 
 load_profile("swiss-twins")
 
-COMPUTER_NAME = "todi"
+COMPUTER_NAME = "santis"
 ICON_CODE_NAME = "icon"
 DRY_RUN = False
-hpc_user = "jgeiger"
+hpc_user = "<user>"
 
 example_remote_path = pathlib.Path(
     f"/capstor/scratch/cscs/{hpc_user}/WCFLOW_ICON_TEST_CASE/exclaim_ape_R02B04"
