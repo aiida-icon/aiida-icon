@@ -1,16 +1,15 @@
-from rich.pretty import pprint
 import functools
 import pathlib
+from pprint import pprint
 
 import aiida
 import aiida.engine
 import aiida.orm
 from aiida_icon.site_support.cscs.todi import setup_for_todi_cpu
-import aiida_icon
 
 from aiida import load_profile
 
-load_profile("swiss-twins")
+load_profile()
 
 COMPUTER_NAME = "santis"
 ICON_CODE_NAME = "icon"
