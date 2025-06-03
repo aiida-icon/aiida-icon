@@ -25,11 +25,9 @@ if __name__ == "__main__":
     icon = aiida.orm.load_code(f"{ICON_CODE_NAME}@{COMPUTER_NAME}")
     make_remote_data = functools.partial(aiida.orm.RemoteData, computer=icon.computer)
     builder = icon.get_builder()
-    # breakpoint()
     builder.master_namelist = aiida.orm.SinglefileData(
         file=thisdir / "icon_master.namelist"
     )
-    # breakpoint()
     builder.model_namelist = aiida.orm.SinglefileData(
         file=thisdir / "NAMELIST_exclaim_ape_R02B04"
     )
@@ -62,7 +60,6 @@ if __name__ == "__main__":
 
     setup_for_todi_cpu(builder)
 
-    # breakpoint()
     pprint(builder)
 
     print(aiida.engine.submit(builder))
