@@ -1,6 +1,5 @@
 import functools
 import pathlib
-from pprint import pprint
 
 import aiida
 import aiida.engine
@@ -59,7 +58,5 @@ if __name__ == "__main__":
     builder.metadata.dry_run = DRY_RUN
 
     setup_for_todi_cpu(builder)
-
-    pprint(builder)
 
     print(aiida.engine.submit(builder))
