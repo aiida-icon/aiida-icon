@@ -1,0 +1,17 @@
+allow_agent: true
+compress: true
+gss_auth: false
+gss_deleg_creds: false
+gss_host: santis.alps.cscs.ch
+gss_kex: false
+key_filename: ~/.ssh/cscs/cscs-key
+key_policy: RejectPolicy
+load_system_host_keys: true
+look_for_keys: true
+port: 22
+proxy_command: ''
+proxy_jump: <user>@ela.cscs.ch
+safe_interval: 30.0
+timeout: 60
+use_login_shell: true
+username: <user>
