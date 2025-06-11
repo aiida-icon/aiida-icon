@@ -5,4 +5,5 @@ job:
   extends: .container-runner-lightweight-zen2
   image: aiidateam/aiida-core-with-services:latest
   script:
+  - sleep 2
   - verdi status
