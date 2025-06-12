@@ -6,12 +6,14 @@ stages:
 - test
 
 build-image:
+  stage: image
   extends: .container-builder-cscs-zen2
   variables:
     PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
     DOCKERFILE: ci/Dockerfile
 
 run-tests:
+  stage: test
   needs: build-image
   extends: .container-runner-lightweight-zen2
   image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
