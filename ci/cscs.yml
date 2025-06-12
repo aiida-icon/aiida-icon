@@ -14,7 +14,7 @@ build-image:
 
 run-tests:
   stage: test
-  needs: build-image
+  needs: [build-image]
   extends: .container-runner-lightweight-zen2
   image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
   variables:
