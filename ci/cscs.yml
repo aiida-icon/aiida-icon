@@ -12,6 +12,7 @@ build-image:
     DOCKERFILE: ci/Dockerfile
 
 run-tests:
+  needs: build-image
   extends: .container-runner-lightweight-zen2
   image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
   variables:
