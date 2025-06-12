@@ -1,9 +1,20 @@
 include:
 - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
 
-job:
+stages:
+- image
+- test
+
+build-image:
+  extends: .container-builder-cscs-zen2
+  variables:
+    PERSIST_IMAGE_NAME: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
+    DOCKERFILE: ci/Dockerfile
+
+run-tests:
   extends: .container-runner-lightweight-zen2
-  image: aiidateam/aiida-core-with-services:latest
+  image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
+  variables:
+    FF_KUBERNETES_HONOR_ENTRYPOINT: 'true'
   script:
-  - sleep 2
   - verdi status
