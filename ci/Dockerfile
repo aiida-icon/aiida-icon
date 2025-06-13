@@ -1,3 +1,3 @@
-FROM aiidateam/aiida-core-with-services:latest
+FROM docker.io/aiidateam/aiida-core-with-services:latest
 
 ENTRYPOINT ["/init", "/bin/bash"]
