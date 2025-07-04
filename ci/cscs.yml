@@ -18,7 +18,6 @@ run-tests:
   needs: [build-image]
   extends: .container-runner-lightweight-zen2
   image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
-  variables:
-    FF_KUBERNETES_HONOR_ENTRYPOINT: 'true'
   script:
-  - verdi status
+  - hatch run verdi presto
+  - hatch run verdi plugin list aiida.calculations

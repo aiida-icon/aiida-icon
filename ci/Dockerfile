@@ -1,7 +1,7 @@
-FROM docker.io/aiidateam/aiida-core-with-services:latest
+FROM docker.io/aiidateam/aiida-core:latest
 
-USER root
+RUN apt-get update --yes && \
+    apt-get install hatch && \
+    hatch self update
 
-ENTRYPOINT ["/init", "/bin/bash"]
-
-User aiida
+ENTRYPOINT ["/bin/bash"]
