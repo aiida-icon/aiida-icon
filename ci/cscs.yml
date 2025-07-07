@@ -24,10 +24,5 @@ run-tests:
   - hatch run cscs-ci:verdi presto
   - hatch run cscs-ci:verdi plugin list aiida.transports
   - hatch run cscs-ci:verdi -p presto computer setup -n --config ci/santis_setup.yaml
-  - |
-    hatch run cscs-ci:verdi -p presto computer configure firecrest -n
-    --config ci/santis_config.yaml 
-    --url=$FIRECREST_URL 
-    --client-secret=$FIRECREST_SECRET 
-    santis
+  - hatch run cscs-ci:verdi -p presto computer configure firecrest santis -n --config ci/santis_config.yaml --url=$FIRECREST_URL --client-secret=$FIRECREST_SECRET
   - hatch run cscs-ci:verdi computer test santis
