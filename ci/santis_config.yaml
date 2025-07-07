@@ -1,0 +1,6 @@
+api_version: 1.16.0
+client_id: firecrest-ricoh-aiida
+compute_resource: santis
+temp_directory: /capstor/scratch/cscs/ricoh/tmp-aiida-f7t
+token_uri: https://auth.cscs.ch/auth/realms/firecrest-clients/protocol/openid-connect/token
+

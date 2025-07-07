@@ -18,6 +18,11 @@ run-tests:
   needs: [build-image]
   extends: .container-runner-lightweight-zen2
   image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
+  variables:
+  - FIRECREST_URL=https://api.cscs.ch/cw/firecrest/v1
   script:
-  - hatch run verdi presto
-  - hatch run verdi plugin list aiida.calculations
+  - hatch run cscs-ci:verdi presto
+  - hatch run cscs-ci:verdi plugin list aiida.transports
+  - hatch run cscs-ci:verdi -p presto computer setup -n --config ci/santis_setup.yaml
+  - hatch run cscs-ci:verdi -p presto computer configure firecrest -n --config ci/santis_config.yaml \ --url=$FIRECREST_URL \ --client-secret=$FIRECREST_SECRET \ santis
+  - hatch run cscs-ci:verdi computer test santis

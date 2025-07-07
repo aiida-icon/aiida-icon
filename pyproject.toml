@@ -59,6 +59,13 @@ source_pkgs = ["aiida_icon", "tests"]
 [tool.hatch.build.hooks.vcs]
 version-file = "src/aiida_icon/_version.py"
 
+[tool.hatch.envs.cscs-ci]
+extra-dependencies = [
+  "aiida-firecrest@https://github.com/aiidateam/aiida-firecrest/archive/refs/tags/v0.1.2.tar.gz"
+]
+installer = "uv"
+python = "3.12"
+
 [tool.hatch.envs.default]
 installer = "uv"
 
