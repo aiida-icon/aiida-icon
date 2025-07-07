@@ -19,7 +19,7 @@ run-tests:
   extends: .container-runner-lightweight-zen2
   image: $CSCS_REGISTRY_PATH/public/aiida-icon:latest
   variables:
-  - FIRECREST_URL=https://api.cscs.ch/cw/firecrest/v1
+  - FIRECREST_URL: https://api.cscs.ch/cw/firecrest/v1
   script:
   - hatch run cscs-ci:verdi presto
   - hatch run cscs-ci:verdi plugin list aiida.transports
