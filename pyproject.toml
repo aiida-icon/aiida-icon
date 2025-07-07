@@ -61,7 +61,7 @@ version-file = "src/aiida_icon/_version.py"
 
 [tool.hatch.envs.cscs-ci]
 extra-dependencies = [
-  "aiida-firecrest@https://github.com/aiidateam/aiida-firecrest/archive/refs/tags/v0.1.2.tar.gz"
+  "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@a70c94e16aea780e7c996257e588a20464680ca4"
 ]
 installer = "uv"
 python = "3.12"
