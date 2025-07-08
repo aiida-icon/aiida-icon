@@ -5,12 +5,16 @@ on:
 
 name: release
 
+permissions: {}
+
 jobs:
   build:
     name: "Build distribution artifacts"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        persist-credentials: false
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -46,4 +50,4 @@ jobs:
         path: dist
 
     - name: Publish package to pypi
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc

@@ -6,6 +6,8 @@ on:
   pull_request:
     # always
 
+permissions: {}
+
 jobs:
   unittests:
     runs-on: ubuntu-latest
@@ -29,13 +31,15 @@ jobs:
         ports:
         - 5432:5432
       rabbitmq:
-        image: rabbitmq:latest
+        image: rabbitmq:4.1.2
         ports:
         - 5672:5672
     environment: testing
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        persist-credentials: false
 
     - name: Set up Python ${{matrix.python-version}}
       uses: actions/setup-python@v5

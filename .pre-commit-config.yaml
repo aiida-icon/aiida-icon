@@ -25,6 +25,11 @@ repos:
   - id: check-yaml
   - id: debug-statements
 
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.11.0
+  hooks:
+  - id: zizmor
+
 - repo: local
   hooks:
   - id: format
