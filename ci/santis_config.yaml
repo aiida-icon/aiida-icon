@@ -1,4 +1,4 @@
-api_version: 1.16.0
+api_version: 0
 client_id: firecrest-ricoh-aiida
 compute_resource: santis
 temp_directory: /capstor/scratch/cscs/ricoh/tmp-aiida-f7t
