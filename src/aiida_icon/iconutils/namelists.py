@@ -13,6 +13,6 @@ def namelists_data(
         case f90nml.namelist.Namelist():
             return namelist
         case aiida.orm.SinglefileData():
-            return f90nml.reads(namelist.get_content())
+            return f90nml.reads(namelist.get_content(mode="r"))
         case _:
             raise ValueError
