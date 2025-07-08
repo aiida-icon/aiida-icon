@@ -6,6 +6,8 @@ on:
   pull_request:
     # always
 
+permissions: {}
+
 jobs:
   unittests:
     runs-on: ubuntu-latest
@@ -29,7 +31,7 @@ jobs:
         ports:
         - 5432:5432
       rabbitmq:
-        image: rabbitmq:latest
+        image: rabbitmq:4.1.2
         ports:
         - 5672:5672
     environment: testing
