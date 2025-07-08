@@ -46,7 +46,7 @@ def options(master_options: MasterOptions, time_control_options: TimeControlOpti
 
 @aiida.engine.calcfunction
 def modify_master_nml(master_nml: aiida.orm.SinglefileData, options: aiida.orm.Dict) -> aiida.orm.SinglefileData:
-    data = f90nml.reads(master_nml.get_content())
+    data = f90nml.reads(master_nml.get_content(mode="r"))
     for section in data:
         if section in options:
             data[section] |= options[section]
