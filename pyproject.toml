@@ -16,7 +16,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Framework :: AiiDA"
 ]
-dependencies = ["aiida-core>=2.5", "click", "f90nml"]
+dependencies = ["aiida-core>=2.5,<2.7", "click", "f90nml"]
 description = 'AiiDA Plugin to run simulations with the ICON weather & climate model'
 dynamic = ["version"]
 keywords = []
