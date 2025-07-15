@@ -44,6 +44,14 @@ class IconCalculation(engine.CalcJob):
         spec.input("rrtmg_lw", valid_type=orm.RemoteData, required=False)
         spec.output("latest_restart_file")
         spec.output_namespace("all_restart_files", dynamic=True)
+        spec.output_namespace(
+            "output_streams",
+            dynamic=True,
+            non_db=True,
+            required=False,
+            valid_type=orm.RemoteData,
+            help="The various output streams of the ICON calculation",
+        )
         spec.output("finish_status")
         options = spec.inputs["metadata"]["options"]  # type: ignore[index] # guaranteed correct by aiida-core
         options["resources"].default = {  # type: ignore[index] # guaranteed correct by aiida-core

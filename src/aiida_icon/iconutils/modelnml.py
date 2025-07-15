@@ -37,6 +37,15 @@ def read_output_stream_paths(
     stream_spec_list: list[f90nml.namelist.Namelist] = (
         [output_data] if isinstance(output_data, f90nml.namelist.Namelist) else output_data
     )
+    # breakpoint()
+    # [
+    #     Namelist(
+    #         [("output_filename", "./simple_icon_run_atm_2d/"), ("steps_per_file", 1)]
+    #     ),
+    #     Namelist(
+    #         [("output_filename", "./simple_icon_run_atm_3d_pl/"), ("steps_per_file", 1)]
+    #     ),
+    # ]
 
     return [_out_stream_path(stream_spec) for stream_spec in stream_spec_list]
 
