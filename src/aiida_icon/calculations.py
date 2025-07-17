@@ -330,7 +330,7 @@ class IconParser(parser.Parser):
             if stream_info.output_filename:
                 # Extract a clean name from the output filename path
                 clean_name = pathlib.Path(stream_info.output_filename).name
-                stream_key = clean_name.replace('/', '_').replace('.', '_').rstrip('_')
+                stream_key = clean_name.replace('/', '__')
             else:
                 stream_key = f"stream_{stream_info.stream_index:02d}"
 
