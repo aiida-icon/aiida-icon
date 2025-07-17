@@ -1,9 +1,19 @@
 import pathlib
+from typing import NamedTuple
 
 import f90nml
 
 from aiida_icon import exceptions
 from aiida_icon.iconutils import namelists
+
+
+class OutputStreamInfo(NamedTuple):
+    """Information about an ICON output stream."""
+
+    path: pathlib.Path
+    filename_format: str
+    output_filename: str
+    stream_index: int
 
 
 def read_restart_file_pattern(model_nml: namelists.NMLInput) -> str:
@@ -48,6 +58,29 @@ def read_output_stream_paths(
     # ]
 
     return [_out_stream_path(stream_spec) for stream_spec in stream_spec_list]
+
+
+def read_output_stream_info(
+    model_nml: namelists.NMLInput,
+) -> list[OutputStreamInfo]:
+    """Read detailed output stream information from the model namelist."""
+    data = namelists.namelists_data(model_nml)
+    output_data = data["output_nml"]
+
+    # wrap in list if there is only one
+    stream_spec_list: list[f90nml.namelist.Namelist] = (
+        [output_data] if isinstance(output_data, f90nml.namelist.Namelist) else output_data
+    )
+
+    return [
+        OutputStreamInfo(
+            path=_out_stream_path(stream_spec),
+            filename_format=stream_spec.get("filename_format", "<output_filename>_XXX_YYY"),
+            output_filename=stream_spec.get("output_filename", ""),
+            stream_index=i,
+        )
+        for i, stream_spec in enumerate(stream_spec_list)
+    ]
 
 
 def _out_stream_path(out_stream_spec: f90nml.namelist.Namelist) -> pathlib.Path:
