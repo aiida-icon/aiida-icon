@@ -74,7 +74,6 @@ jobs:
       uses: lhotari/action-upterm@v1
       with:
         limit-access-to-actor: true
-        timeout-minutes: 10
 
     - name: Run ICON tests
       shell: spack-bash {0}
