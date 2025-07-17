@@ -67,7 +67,7 @@ installer = "uv"
 python = "3.12"
 
 [tool.hatch.envs.default]
-dependencies = ["aiida-core==2.6.4", "click==8.1.8", "f90nml==1.4.5"]
+dependencies = ["aiida-core==2.7.1", "click==8.1.8", "f90nml==1.4.5"]
 installer = "uv"
 
 [tool.hatch.envs.docs]
@@ -79,7 +79,10 @@ extra-dependencies = [
 [tool.hatch.envs.hatch-test]
 extra-args = ["-m", "not requires_icon"]
 extra-dependencies = [
-  "aiida-testing-dev"
+  "aiida-testing-dev",
+  "aiida-core==2.7.1",
+  "click==8.1.8",
+  "f90nml==1.4.5"
 ]
 
 [[tool.hatch.envs.test.matrix]]
