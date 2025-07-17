@@ -70,13 +70,14 @@ jobs:
         pip install --upgrade pip 
         pip install hatch
 
-    - name: Setup upterm session
-      uses: lhotari/action-upterm@v1
-      with:
-        limit-access-to-actor: true
-
     - name: Run ICON tests
       shell: spack-bash {0}
       run: |
         spack env activate .
         hatch test -py ${{matrix.python-version}} -n auto -v -m requires_icon tests
+
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
+      if: failure()
+      with:
+        limit-access-to-actor: true
