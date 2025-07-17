@@ -70,6 +70,12 @@ jobs:
         pip install --upgrade pip 
         pip install hatch
 
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
+      with:
+        limit-access-to-actor: true
+        timeout-minutes: 10
+
     - name: Run ICON tests
       shell: spack-bash {0}
       run: |

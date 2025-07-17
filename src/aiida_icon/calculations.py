@@ -317,39 +317,35 @@ class IconParser(parser.Parser):
         """Parse output streams from the model namelist and create RemoteData nodes."""
         output_streams = {}
 
-        try:
-            # Get the remote folder where outputs are stored
-            remote_folder = self.node.outputs.remote_folder
-            remote_base_path = pathlib.Path(remote_folder.get_remote_path())
+        # Get the remote folder where outputs are stored
+        remote_folder = self.node.outputs.remote_folder
+        remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
-            # Get detailed output stream information from the namelist
-            stream_infos = modelnml.read_output_stream_info(self.node.inputs.model_namelist)
+        # Get detailed output stream information from the namelist
+        stream_infos = modelnml.read_output_stream_info(self.node.inputs.model_namelist)
 
-            # Create RemoteData nodes for each output directory
-            for stream_info in stream_infos:
-                # Create a meaningful key from the output filename or directory
-                if stream_info.output_filename:
-                    # Extract a clean name from the output filename path
-                    clean_name = pathlib.Path(stream_info.output_filename).name
-                    stream_key = clean_name.replace('/', '_').replace('.', '_').strip('_')
-                else:
-                    stream_key = f"stream_{stream_info.stream_index:02d}"
+        # Create RemoteData nodes for each output directory
+        for stream_info in stream_infos:
+            # Create a meaningful key from the output filename or directory
+            if stream_info.output_filename:
+                # Extract a clean name from the output filename path
+                clean_name = pathlib.Path(stream_info.output_filename).name
+                stream_key = clean_name.replace('/', '_').replace('.', '_').rstrip('_')
+            else:
+                stream_key = f"stream_{stream_info.stream_index:02d}"
 
-                # Ensure the key is valid (not empty and doesn't start with underscore)
-                if not stream_key or stream_key.startswith('_'):
-                    stream_key = f"stream_{stream_info.stream_index:02d}"
+            # Ensure the key is valid (not empty and doesn't start with underscore)
+            if not stream_key:
+                stream_key = f"stream_{stream_info.stream_index:02d}"
 
-                # Create RemoteData node pointing to the output directory
-                full_output_path = remote_base_path / stream_info.path
-                output_streams[stream_key] = orm.RemoteData(
-                    computer=self.node.computer,
-                    remote_path=str(full_output_path),
-                )
+            # Create RemoteData node pointing to the output directory
+            full_output_path = remote_base_path / stream_info.path
+            output_streams[stream_key] = orm.RemoteData(
+                computer=self.node.computer,
+                remote_path=str(full_output_path),
+            )
 
-                self.logger.info(f"Registered output stream '{stream_key}' -> {full_output_path}")
-
-        except Exception as exc:
-            self.logger.warning(f"Could not parse output streams: {exc}")
-            self.logger.warning("Output streams will not be available as outputs.")
+            self.logger.info(f"Registered output stream '{stream_key}' -> {full_output_path}")
 
         return output_streams
+
