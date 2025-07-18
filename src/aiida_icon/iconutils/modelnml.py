@@ -66,8 +66,8 @@ def read_output_stream_info(
     return [
         OutputStreamInfo(
             path=_out_stream_path(stream_spec),
-            filename_format=stream_spec.get("filename_format", "<output_filename>_XXX_YYY"),
             output_filename=stream_spec.get("output_filename", ""),
+            filename_format=stream_spec.get("filename_format", ""),
             stream_index=i,
         )
         for i, stream_spec in enumerate(stream_spec_list)
@@ -77,6 +77,26 @@ def read_output_stream_info(
 def _out_stream_path(out_stream_spec: f90nml.namelist.Namelist) -> pathlib.Path:
     """Replicate ICON logic in forming the filenames to get the output dir."""
 
-    filename_format = out_stream_spec.get("filename_format", "<output_filename>_XXX_YYY")
-    output_filename = out_stream_spec.get("output_filename", "")
-    return pathlib.Path(filename_format.replace("<output_filename>", output_filename)).parent
+    # output_filename is required, but filename_format is optional
+    try:
+        output_filename = out_stream_spec["output_filename"]
+    except KeyError as e:
+        msg = f"Missing required key in output_nml section: {e}"
+        raise ValueError(msg) from e
+
+    # filename_format is optional - if missing, assume output_filename is the directory
+    filename_format = out_stream_spec.get("filename_format", "")
+
+    # Handle two ICON patterns:
+    # 1. output_filename is a directory: './atm_2d/'
+    # 2. output_filename is a file prefix: './results/run1'
+    if output_filename.endswith("/"):
+        # Pattern 1: Directory - use it directly as the output path
+        return pathlib.Path(output_filename.rstrip("/"))
+    if filename_format:
+        # Pattern 2: File prefix with explicit format - construct full filename and take parent directory
+        full_path = filename_format.replace("<output_filename>", output_filename)
+        return pathlib.Path(full_path).parent
+    if "/" in output_filename:
+        return pathlib.Path(output_filename).parent
+    return pathlib.Path(".")

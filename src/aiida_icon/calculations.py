@@ -328,24 +328,38 @@ class IconParser(parser.Parser):
         for stream_info in stream_infos:
             # Create a meaningful key from the output filename or directory
             if stream_info.output_filename:
-                # Extract a clean name from the output filename path
-                clean_name = pathlib.Path(stream_info.output_filename).name
-                stream_key = clean_name.replace('/', '__')
+                # Clean the output filename path for use as a key
+                clean_path = pathlib.Path(stream_info.output_filename)
+                # Remove leading ./ and trailing /
+                clean_name = str(clean_path).lstrip("./").rstrip("/")
+                stream_key = clean_name.replace("/", "__")
             else:
                 stream_key = f"stream_{stream_info.stream_index:02d}"
 
             # Ensure the key is valid (not empty and doesn't start with underscore)
-            if not stream_key:
+            if not stream_key or stream_key.startswith("_"):
                 stream_key = f"stream_{stream_info.stream_index:02d}"
 
             # Create RemoteData node pointing to the output directory
             full_output_path = remote_base_path / stream_info.path
-            output_streams[stream_key] = orm.RemoteData(
-                computer=self.node.computer,
-                remote_path=str(full_output_path),
-            )
 
-            self.logger.info(f"Registered output stream '{stream_key}' -> {full_output_path}")
+            # Check if the directory actually exists using RemoteData methods
+            try:
+                # Use the RemoteData.listdir() method to check if directory exists and is accessible
+                files_in_dir = remote_folder.listdir(str(stream_info.path))
+                self.logger.info("Found %s files in output directory '%s'", len(files_in_dir), stream_info.path)
+
+                output_streams[stream_key] = orm.RemoteData(
+                    computer=self.node.computer,
+                    remote_path=str(full_output_path),
+                )
+
+                self.logger.info("Registered output stream '%s' -> %s", stream_key, full_output_path)
+
+            except OSError as e:
+                self.logger.warning("Output directory %s not found or not accessible: %s", stream_info.path, e)
+                # Optionally still register it, or skip it depending on your preference
+                # For now, let's skip missing directories
+                continue
 
         return output_streams
-
