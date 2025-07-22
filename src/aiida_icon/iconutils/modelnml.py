@@ -11,8 +11,8 @@ class OutputStreamInfo(NamedTuple):
     """Information about an ICON output stream."""
 
     path: pathlib.Path
-    filename_format: str
     output_filename: str
+    filename_format: str
     stream_index: int
 
 
