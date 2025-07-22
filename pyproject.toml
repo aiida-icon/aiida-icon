@@ -61,10 +61,14 @@ version-file = "src/aiida_icon/_version.py"
 
 [tool.hatch.envs.cscs-ci]
 extra-dependencies = [
-  "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@a70c94e16aea780e7c996257e588a20464680ca4"
+  "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@e68b3200ad60b1ea525c9c0a76adffe6c3a932e8",
+  "pyfirecrest@git+https://github.com/eth-cscs/pyfirecrest@933d1c50e11e1f3049ec9a7799cbc598e426949d"
 ]
 installer = "uv"
 python = "3.12"
+
+[tool.hatch.envs.cscs-ci.scripts]
+test = "pytest -m cscsci -s"
 
 [tool.hatch.envs.default]
 dependencies = ["aiida-core==2.7.1", "click==8.1.8", "f90nml==1.4.5"]
@@ -77,7 +81,7 @@ extra-dependencies = [
 ]
 
 [tool.hatch.envs.hatch-test]
-extra-args = ["-m", "not requires_icon"]
+extra-args = ["-m", "not requires_icon and not cscsci"]
 extra-dependencies = [
   "aiida-testing-dev",
   "aiida-core==2.7.1",
@@ -111,7 +115,8 @@ module = "f90nml"
 
 [tool.pytest.ini_options]
 markers = [
-  'requires_icon: marks test to require icon installation'
+  "requires_icon: marks test to require icon installation",
+  "cscsci: tests that are only supposed to run in CSCS-CI"
 ]
 
 [tool.ruff]

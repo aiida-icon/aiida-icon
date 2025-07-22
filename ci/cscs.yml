@@ -21,8 +21,9 @@ run-tests:
   variables:
     FIRECREST_URL: https://api.cscs.ch/cw/firecrest/v2
   script:
-  - hatch run cscs-ci:verdi presto
+  - hatch run cscs-ci:verdi presto -p cscsci
   - hatch run cscs-ci:verdi plugin list aiida.transports
-  - hatch run cscs-ci:verdi -p presto computer setup -n --config ci/santis_setup.yaml
-  - hatch run cscs-ci:verdi -p presto computer configure firecrest santis -n --config ci/santis_config.yaml --url=$FIRECREST_URL --client-secret=$FIRECREST_SECRET --billing-account=csstaff
+  - hatch run cscs-ci:verdi computer setup -n --config ci/santis_setup.yaml
+  - hatch run cscs-ci:verdi computer configure firecrest santis -n --config ci/santis_config.yaml --url=$FIRECREST_URL --client-secret=$FIRECREST_SECRET --billing-account=csstaff
   - hatch run cscs-ci:verdi computer test santis
+  - hatch run cscs-ci:test
