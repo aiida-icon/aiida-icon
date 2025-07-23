@@ -1,0 +1,127 @@
+import pathlib
+from typing import Any
+
+import aiida
+import aiida.engine
+import aiida.orm
+import pytest
+
+from aiida_icon.site_support.cscs import todi
+
+
+@pytest.fixture(scope="session", autouse=True)
+def aiida_config() -> None:
+    return None
+
+
+@pytest.fixture(scope="session", autouse=True)
+def aiida_profile() -> None:
+    aiida.load_profile("cscsci")
+
+
+@pytest.fixture
+def santis() -> aiida.orm.Computer:
+    return aiida.orm.load_computer("santis")
+
+
+@pytest.fixture
+def icon_base_path() -> pathlib.Path:
+    return pathlib.Path("/capstor/store/cscs/userlab/cwd01/leclairm/archive_icon_build/icon-nwp_cpu_25.2-v3")
+
+
+@pytest.fixture
+def icon(santis, icon_base_path) -> aiida.orm.InstalledCode:
+    return aiida.orm.InstalledCode(
+        computer=santis,
+        filepath_executable=str(icon_base_path / "bin" / "icon"),
+        input_plugin_name="icon.icon",
+    )
+
+
+@pytest.fixture
+def experiment_path() -> pathlib.Path:
+    return pathlib.Path("/capstor/store/cscs/userlab/cwd01/leclairm/Sirocco_test_cases/exclaim_ape_R02B04")
+
+
+@pytest.fixture
+def experiment_remotedata(experiment_path, santis) -> aiida.orm.RemoteData:
+    return aiida.orm.RemoteData(remote_path=str(experiment_path), computer=santis)
+
+
+@pytest.fixture
+def master_nml(datapath) -> aiida.orm.SinglefileData:
+    filename = "icon_master.namelist"
+    filepath = str(datapath / "r2b4_inputs" / filename)
+    return aiida.orm.SinglefileData(file=filepath)
+
+
+@pytest.fixture
+def model_nml(datapath) -> aiida.orm.SinglefileData:
+    filename = "NAMELIST_exclaim_ape_R02B04"
+    filepath = str(datapath / "r2b4_inputs" / filename)
+    return aiida.orm.SinglefileData(file=filepath)
+
+
+@pytest.fixture
+def grid_file(experiment_path, santis) -> aiida.orm.RemoteData:
+    return aiida.orm.RemoteData(remote_path=str(experiment_path / "icon_grid_0013_R02B04_R.nc"), computer=santis)
+
+
+@pytest.fixture
+def initdata_remotes(icon_base_path, santis) -> dict[str, aiida.orm.RemoteData]:
+    initdata_path = icon_base_path / "data"
+    return {
+        "ecrad_data": aiida.orm.RemoteData(
+            remote_path=str(icon_base_path / "externals" / "ecrad" / "data"),
+            computer=santis,
+        ),
+        "rrtmg_sw": aiida.orm.RemoteData(remote_path=str(initdata_path / "rrtmg_sw.nc"), computer=santis),
+        "cloud_opt_props": aiida.orm.RemoteData(
+            remote_path=str(initdata_path / "ECHAM6_CldOptProps.nc"), computer=santis
+        ),
+        "dmin_wetgrowth_lookup": aiida.orm.RemoteData(
+            remote_path=str(initdata_path / "dmin_wetgrowth_graupelhail_cosmo5.nc"),
+            computer=santis,
+        ),
+    }
+
+
+@pytest.fixture
+def metadata() -> dict[str, Any]:
+    return {
+        "options": {
+            "mpirun_extra_params": [
+                "--threads-per-core=1",
+                "--distribution=block:block:block",
+            ],
+            "resources": {
+                "num_machines": 1,
+                "num_mpiprocs_per_machine": 288,
+            },
+            "max_wallclock_seconds": 5 * 60,
+            "max_memory_kb": 128 * 1000000,
+            "queue_name": "debug",
+            "account": "csstaff",
+        }
+    }
+
+
+@pytest.mark.cscsci
+def test_r2b4_santis(santis, icon, master_nml, model_nml, grid_file, initdata_remotes, metadata):
+    builder = icon.get_builder()
+    builder.master_namelist = master_nml
+    builder.model_namelist = model_nml
+    builder.dynamics_grid_file = grid_file
+    for key, value in initdata_remotes.items():
+        builder[key] = value
+    builder.metadata = metadata
+    todi.setup_for_todi_cpu(builder)
+    res, node = aiida.engine.run_get_node(builder)
+
+    assert node.process_state is aiida.engine.ProcessState.FINISHED
+    assert "remote_folder" in res
+    assert "retrieved" in res
+    assert "finish_status" in res
+    assert node.exit_status == 0
+    assert node.exit_message is None
+    assert node.exit_code is None

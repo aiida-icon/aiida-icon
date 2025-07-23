@@ -6,8 +6,8 @@ label: santis
 mpiprocs_per_machine: 72
 mpirun_command: srun -n {tot_num_mpiprocs} --ntasks-per-node {num_mpiprocs_per_machine}
 prepend_text: ''
-scheduler: core.slurm
-shebang: '#!/bin/bash'
+scheduler: firecrest
+shebang: '#!/bin/bash -l'
 transport: firecrest
 use_double_quotes: false
 work_dir: /capstor/scratch/cscs/ricoh/aiida
