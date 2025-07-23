@@ -5,6 +5,10 @@ on:
     - main
     - fix-docs-deploy
 
+permissions:
+  contents: write
+  pages: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
