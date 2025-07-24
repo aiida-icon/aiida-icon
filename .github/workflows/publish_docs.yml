@@ -33,6 +33,4 @@ jobs:
     - name: "Build and deploy docs to gh-pages"
       run: |
         pip install hatch
-        git config user.name github-actions[bot]
-        git config user.email github-actions[bot]@users.noreply.github.com
         hatch run docs:mkdocs gh-deploy --force
