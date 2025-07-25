@@ -35,12 +35,13 @@ def common_alps_setup(builder: processes.ProcessBuilder) -> None:
         "OMP_DYNAMIC": "false",
         "OMP_STACKSIZE": "200M",
     }
-    options.prepend_text = textwrap.dedent(
-        """
-        chmod 755 run_icon.sh
-        """
-    )
-    options.mpirun_extra_params.append("./run_icon.sh")
+    # This here to prepare_for_submission
+    # options.prepend_text = textwrap.dedent(
+    #     """
+    #     chmod 755 run_icon.sh
+    #     """
+    # )
+    # options.mpirun_extra_params.append("./run_icon.sh")
 
 
 def setup_for_todi_cpu(builder: processes.ProcessBuilder) -> None:
