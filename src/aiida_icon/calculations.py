@@ -171,11 +171,11 @@ class IconCalculation(engine.CalcJob):
                 )
             )
             # Automatically set up wrapper script execution
-            existing_prepend = getattr(self.options, 'prepend_text', '') or ''
+            existing_prepend = getattr(self.inputs.metadata.options, "prepend_text", "") or ""
             calcinfo.prepend_text = f"{existing_prepend}\nchmod 755 run_icon.sh".strip()
-        
-            existing_mpirun_params = getattr(self.options, 'mpirun_extra_params', []) or []
-            calcinfo.mpirun_extra_params = existing_mpirun_params + ["./run_icon.sh"]
+
+            existing_mpirun_params = getattr(self.inputs.metadata.options, "mpirun_extra_params", []) or []
+            calcinfo.mpirun_extra_params = [*existing_mpirun_params, "./run_icon.sh"]
 
         calcinfo.retrieve_list = [
             "finish.status",
