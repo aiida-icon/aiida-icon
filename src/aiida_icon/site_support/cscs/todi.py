@@ -39,7 +39,7 @@ def common_alps_setup(builder: processes.ProcessBuilder) -> None:
     # Check if it's a callable (lambda function) and call it if needed
     if callable(existing_mpirun_params):
         existing_mpirun_params = existing_mpirun_params()
-    
+
     options.mpirun_extra_params = [*existing_mpirun_params, "./run_icon.sh"]
 
 
