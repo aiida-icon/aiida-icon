@@ -28,6 +28,7 @@ class IconCalculation(engine.CalcJob):
         spec.input("model_namelist", valid_type=orm.SinglefileData)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
+        spec.input("run_env", valid_type=orm.SinglefileData, required=False)
         spec.input(
             "dynamics_grid_file",
             valid_type=orm.RemoteData,
@@ -168,6 +169,14 @@ class IconCalculation(engine.CalcJob):
                     self.inputs.wrapper_script.uuid,
                     self.inputs.wrapper_script.filename,
                     "run_icon.sh",
+                )
+            )
+        if "run_env" in self.inputs:
+            calcinfo.local_copy_list.append(
+                (
+                    self.inputs.run_env.uuid,
+                    self.inputs.run_env.filename,
+                    "run_env.sh",
                 )
             )
         calcinfo.retrieve_list = [
