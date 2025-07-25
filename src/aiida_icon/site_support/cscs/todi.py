@@ -18,7 +18,7 @@ def common_alps_setup(builder: processes.ProcessBuilder) -> None:
     options.custom_scheduler_commands = "\n".join(
         [
             *options.custom_scheduler_commands.splitlines(),
-            "#SBATCH --uenv=icon-wcp/v1:rc4",
+            "#SBATCH --uenv=icon/25.2:v3",
         ]
     )
     options.environment_variables = {
