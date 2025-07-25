@@ -1,5 +1,4 @@
 import pathlib
-import textwrap
 
 import aiida
 from aiida.engine import processes
@@ -35,12 +34,13 @@ def common_alps_setup(builder: processes.ProcessBuilder) -> None:
         "OMP_DYNAMIC": "false",
         "OMP_STACKSIZE": "200M",
     }
-    options.prepend_text = textwrap.dedent(
-        """
-        chmod 755 run_icon.sh
-        """
-    )
-    options.mpirun_extra_params.append("./run_icon.sh")
+
+    existing_mpirun_params = getattr(options, "mpirun_extra_params", []) or []
+    # Check if it's a callable (lambda function) and call it if needed
+    if callable(existing_mpirun_params):
+        existing_mpirun_params = existing_mpirun_params()
+
+    options.mpirun_extra_params = [*existing_mpirun_params, "./run_icon.sh"]
 
 
 def setup_for_todi_cpu(builder: processes.ProcessBuilder) -> None:
