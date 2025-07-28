@@ -1,6 +1,5 @@
 ---
 hide:
-  - navigation
   - path
 ---
 
@@ -54,6 +53,10 @@ The following is a summary of the [AiiDA Quick Install Guide](https://aiida.read
 ### Get Productive
 
 1. Now you are ready to either run bare-bones ICON jobs (checkout the `examples/` directory for inspiration), or to develop AiiDA workflows incorporating ICON jobs.
+
+## Recipes for specific use cases
+
+Find detailed instructions for specific known usecases [here](recipes.md)
 
 [icon]: https://icon-model.org "ICON - Climate & Weather Model"
 [aiida]: https://www.aiida.net "AiiDA - Workflow Manager"

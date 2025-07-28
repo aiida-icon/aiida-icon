@@ -9,6 +9,7 @@ import typing
 import f90nml
 from aiida import engine, orm
 from aiida.common import datastructures, folders
+from aiida.engine.processes import builder as process_builder
 from aiida.parsers import parser
 
 from aiida_icon import exceptions
@@ -20,6 +21,10 @@ if typing.TYPE_CHECKING:
 
 class IconCalculation(engine.CalcJob):
     """AiiDA calculation to run ICON."""
+
+    @classmethod
+    def get_builder(cls) -> process_builder.ProcessBuilder:
+        return IconCalculationBuilder(cls)
 
     @classmethod
     def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core
@@ -170,12 +175,6 @@ class IconCalculation(engine.CalcJob):
                     "run_icon.sh",
                 )
             )
-            # Automatically set up wrapper script execution
-            existing_prepend = getattr(self.inputs.metadata.options, "prepend_text", "") or ""
-            calcinfo.prepend_text = f"{existing_prepend}\nchmod 755 run_icon.sh".strip()
-
-            # existing_mpirun_params = getattr(self.inputs.metadata.options, "mpirun_extra_params", []) or []
-            # calcinfo.mpirun_extra_params = [*existing_mpirun_params, "./run_icon.sh"]
 
         calcinfo.retrieve_list = [
             "finish.status",
@@ -300,3 +299,48 @@ class IconParser(parser.Parser):
             self.logger.info("Could not find a valid set of restart files.")
 
         return result
+
+
+class IconCalculationBuilder(process_builder.ProcessBuilder):
+    """
+    Custom ProcessBuilder for IconCalculation.
+
+    This ensures that setting `.wrapper_script` on the builder takes care of
+    setting the options required to use the wrapper script.
+
+    This slightly changes the semantics of the `mpirun_extra_params` option
+    in the presence of a wrapper script input. Check the examples section below
+    for details.
+
+    Examples:
+
+        >>> from aiida import orm
+        >>> builder = IconCalculation.get_builder()
+        >>> builder.wrapper_script = orm.SinglefileData(__file__)
+        >>> builder.metadata.options.prepend_text
+        'chmod 755 run_icon.sh'
+        >>> builder.metadata.options.mpirun_extra_params
+        ['./run_icon.sh']
+
+        in order for additional mpirun params to not be considered params of the run script,
+        we need to prepend them from now on
+
+        >>> # add an additional mpirun option
+        >>> builder.metadata.options.mpirun_extra_params.insert(-1, "--mpirun-option")
+        >>> # add an option to the wrapper script
+        >>> builder.metadata.options.mpirun_extra_params.append("--wrapper-script-option")
+    """
+
+    def __setattr__(self, attr: str, value: typing.Any) -> None:
+        if attr == "wrapper_script":
+            self.metadata.options.prepend_text = "\n".join(  # type: ignore[attr-defined]
+                [
+                    *self.metadata.options.prepend_text.splitlines(),  # type: ignore[attr-defined]
+                    "chmod 755 run_icon.sh",
+                ]
+            )
+            current_mpirun_extra_params = self.metadata.options.mpirun_extra_params  # type: ignore[attr-defined]
+            if callable(current_mpirun_extra_params):
+                self.metadata.options.mpirun_extra_params = typing.cast(list, current_mpirun_extra_params()) or []  # type: ignore[attr-defined]
+            self.metadata.options.mpirun_extra_params.append("./run_icon.sh")  # type: ignore[attr-defined]
+        super().__setattr__(attr, value)

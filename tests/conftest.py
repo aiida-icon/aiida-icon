@@ -57,9 +57,19 @@ def datapath() -> pathlib.Path:
 
 @pytest.fixture
 def parser_case(case_name, datapath: pathlib.Path):
-    case_name, exit_code, required_output_links, disallowed_output_links, finish_status_value = PARSER_CASES[case_name]
+    (
+        case_name,
+        exit_code,
+        required_output_links,
+        disallowed_output_links,
+        finish_status_value,
+    ) = PARSER_CASES[case_name]
     return ParserCase(
-        datapath / case_name, exit_code, required_output_links, disallowed_output_links, finish_status_value
+        datapath / case_name,
+        exit_code,
+        required_output_links,
+        disallowed_output_links,
+        finish_status_value,
     )
 
 
@@ -163,4 +173,24 @@ def mock_icon_calc(datapath, aiida_computer_local, aiida_code_installed):
     builder.rrtmg_sw = make_remote(remote_path=str(inputs_path / "rrtmg_sw.nc"))
     builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))
     builder.dmin_wetgrowth_lookup = make_remote(remote_path=str(inputs_path / "dmin_wetgrowth_lookup.nc"))
+    if "wrapper_script.sh" in datapath.iterdir():
+        builder.wrapper_script = aiida.orm.SinglefileData(inputs_path / "wrapper_script.sh")
+    return IconCalculation(dict(builder))
+
+
+@pytest.fixture
+def icon_calc_with_wrapper(datapath, aiida_computer_local, aiida_code_installed):
+    """Create an IconCalculation which is ready to call .prepare_for_submission()."""
+    code = aiida_code_installed(default_calc_job_plugin="icon.icon", computer=aiida_computer_local())
+    inputs_path = datapath.absolute() / "wrapper_script" / "inputs"
+    builder = code.get_builder()
+    make_remote = functools.partial(aiida.orm.RemoteData, computer=code.computer)
+    builder.master_namelist = aiida.orm.SinglefileData(inputs_path / "icon_master.namelist")
+    builder.model_namelist = aiida.orm.SinglefileData(inputs_path / "model.namelist")
+    builder.dynamics_grid_file = make_remote(remote_path=str(inputs_path / "icon_grid_simple.nc"))
+    builder.ecrad_data = make_remote(remote_path=str(inputs_path / "ecrad_data"))
+    builder.rrtmg_sw = make_remote(remote_path=str(inputs_path / "rrtmg_sw.nc"))
+    builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))
+    builder.dmin_wetgrowth_lookup = make_remote(remote_path=str(inputs_path / "dmin_wetgrowth_lookup.nc"))
+    builder.wrapper_script = aiida.orm.SinglefileData(inputs_path / "wrapper_script.sh")
     return IconCalculation(dict(builder))
