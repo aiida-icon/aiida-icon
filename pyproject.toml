@@ -83,6 +83,7 @@ extra-dependencies = [
 
 [tool.hatch.envs.hatch-test]
 default-args = ["-m", "not requires_icon and not cscsci"]
+extra-args = ["-m", "not requires_icon and not cscsci"]
 extra-dependencies = [
   "aiida-testing-dev",
   "aiida-core==2.7.1",
