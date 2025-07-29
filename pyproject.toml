@@ -82,7 +82,7 @@ extra-dependencies = [
 ]
 
 [tool.hatch.envs.hatch-test]
-extra-args = ["-m", "not requires_icon and not cscsci"]
+default-args = ["-m", "not requires_icon and not cscsci"]
 extra-dependencies = [
   "aiida-testing-dev",
   "aiida-core==2.7.1",
@@ -92,11 +92,6 @@ extra-dependencies = [
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13"]
-
-[tool.hatch.envs.hatch-test.scripts]
-run = ["run-tests", "run-doctest"]
-run-doctest = "pytest {env:HATCH_TEST_ARGS:} --doctest-modules src/aiida_icon"
-run-tests = "pytest {env:HATCH_TEST_ARGS:} {args}"
 
 [tool.hatch.envs.types]
 extra-dependencies = [
@@ -120,10 +115,12 @@ ignore_missing_imports = true
 module = "f90nml"
 
 [tool.pytest.ini_options]
+addopts = ["--doctest-modules"]
 markers = [
   "requires_icon: marks test to require icon installation",
   "cscsci: tests that are only supposed to run in CSCS-CI"
 ]
+testpaths = ["tests", "src/aiida_icon"]
 
 [tool.ruff]
 exclude = ["examples", ".spack*"]
