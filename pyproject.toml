@@ -82,7 +82,7 @@ extra-dependencies = [
 ]
 
 [tool.hatch.envs.hatch-test]
-extra-args = ["-m", "not requires_icon and not cscsci", "--doctest-modules"]
+extra-args = ["-m", "not requires_icon and not cscsci"]
 extra-dependencies = [
   "aiida-testing-dev",
   "aiida-core==2.7.1",
@@ -90,8 +90,13 @@ extra-dependencies = [
   "f90nml==1.4.5"
 ]
 
-[[tool.hatch.envs.test.matrix]]
+[[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13"]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = ["run-tests", "run-doctest"]
+run-doctest = "pytest {env:HATCH_TEST_ARGS:} --doctest-modules src/aiida_icon"
+run-tests = "pytest {env:HATCH_TEST_ARGS:} {args}"
 
 [tool.hatch.envs.types]
 extra-dependencies = [
