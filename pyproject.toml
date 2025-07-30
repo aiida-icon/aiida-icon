@@ -121,7 +121,7 @@ markers = [
   "requires_icon: marks test to require icon installation",
   "cscsci: tests that are only supposed to run in CSCS-CI"
 ]
-testpaths = ["tests", "src/aiida_icon"]
+testpaths = ["tests", "src"]
 
 [tool.ruff]
 exclude = ["examples", ".spack*"]
