@@ -314,6 +314,7 @@ class IconCalculationBuilder(process_builder.ProcessBuilder):
 
     Examples:
 
+        >>> pytest_plugins = ["aiida.tools.pytest_fixtures"]
         >>> from aiida import orm
         >>> builder = IconCalculation.get_builder()
         >>> builder.wrapper_script = orm.SinglefileData(__file__)
