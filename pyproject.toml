@@ -115,6 +115,11 @@ exclude = ['^examples/.*']
 ignore_missing_imports = true
 module = "f90nml"
 
+[tool.pyright]
+executionEnvironments = [{root = "src"}]
+venv = "types"
+venvPath = "$(hatch env find)"
+
 [tool.pytest.ini_options]
 addopts = ["--doctest-modules"]
 markers = [
