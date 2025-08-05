@@ -4,10 +4,10 @@ from aiida.engine import processes
 from aiida_icon import builder, tools
 from aiida_icon.site_support.cscs import alps
 
-__all__ = ["setup_for_todi_cpu"]
+__all__ = ["setup_for_santis_cpu"]
 
 
-def setup_for_todi_cpu(icon_builder: processes.ProcessBuilder, *, uenv: tools.Uenv | None = None) -> None:
+def setup_for_santis_cpu(icon_builder: processes.ProcessBuilder, *, uenv: tools.Uenv | None = None) -> None:
     """Set up the wrapper script for running on todi."""
     alps.common_alps_setup(icon_builder, uenv=uenv)
     if not isinstance(icon_builder, builder.IconCalculationBuilder):
