@@ -35,7 +35,7 @@ def icon(santis, icon_base_path) -> aiida.orm.InstalledCode:
     code = aiida.orm.InstalledCode(
         computer=santis,
         filepath_executable=str(icon_base_path / "bin" / "icon"),
-        input_plugin_name="icon.icon",
+        default_calc_job_plugin="icon.icon",
     )
     code.store()
     tools.code_set_uenv(code, uenv=tools.Uenv(name="icon/25.2:v3", view="default"))
@@ -111,16 +111,18 @@ def metadata() -> dict[str, Any]:
 
 
 @pytest.mark.cscsci
-def test_r2b4_santis(santis, icon, master_nml, model_nml, grid_file, initdata_remotes, metadata):
+def test_r2b4_santis(icon, master_nml, model_nml, grid_file, initdata_remotes, metadata):
     builder = icon.get_builder()
     builder.master_namelist = master_nml
     builder.model_namelist = model_nml
     builder.dynamics_grid_file = grid_file
     for key, value in initdata_remotes.items():
         builder[key] = value
-    builder.metadata = metadata
+    builder._merge({"metadata": metadata})  # noqa: SLF001 # _merge is not private, merely named to avoid clashes
     cscs.santis.setup_for_santis_cpu(builder)
     res, node = aiida.engine.run_get_node(builder)
+
+    print(f"workdir: {node.get_remote_workdir()}")  # noqa: T201 # leave this to be able to check the workdir in case of failure
 
     assert node.process_state is aiida.engine.ProcessState.FINISHED
     assert "remote_folder" in res
