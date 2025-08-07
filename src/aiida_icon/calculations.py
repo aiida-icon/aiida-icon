@@ -33,6 +33,7 @@ class IconCalculation(engine.CalcJob):
         spec.input("model_namelist", valid_type=orm.SinglefileData)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
+        spec.input("setup_env", valid_type=orm.SinglefileData, required=False)
         spec.input(
             "dynamics_grid_file",
             valid_type=orm.RemoteData,
@@ -175,7 +176,15 @@ class IconCalculation(engine.CalcJob):
                     "run_icon.sh",
                 )
             )
-
+        if "setup_env" in self.inputs:
+            calcinfo.local_copy_list.append(
+                (
+                    self.inputs.setup_env.uuid,
+                    self.inputs.setup_env.filename,
+                    "setup_env.sh",
+                )
+            )
+            calcinfo.prepend_text = "\n".join([*calcinfo.get("prepend_text", "").splitlines(), "source ./setup_env.sh"])
         calcinfo.retrieve_list = [
             "finish.status",
             "nml.atmo.log",
