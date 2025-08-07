@@ -4,7 +4,7 @@ import re
 import pytest
 from aiida.common import folders
 
-from aiida_icon import calculations
+from aiida_icon import calculations, tools
 
 
 def test_prepare_for_calc(mock_icon_calc, tmp_path):
@@ -65,3 +65,19 @@ def test_wrapper_script_autouse(icon_calc_with_wrapper, tmp_path):
     assert re.search(r"chmod 755 run_icon.sh", submit_content, re.MULTILINE)
     assert re.search(r"(('mpirun')|('srun')) .* './run_icon.sh'", submit_content, re.MULTILINE)
     assert "run_icon.sh" in [triplet[2] for triplet in calcinfo.local_copy_list]
+
+
+def test_uenv_autouse(icon_code, datapath, add_input_files, tmp_path):
+    prepare_path = tmp_path / "test_autouenv"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+
+    tools.code_set_uenv(icon_code, uenv=tools.Uenv(name="foo", view="bar"))
+    builder = icon_code.get_builder()
+    add_input_files(datapath / "simple_icon_run" / "inputs", builder)
+    calc = calculations.IconCalculation(dict(builder))
+
+    _ = calc.presubmit(sandbox_folder)
+
+    submit_content = (pathlib.Path(sandbox_folder.get_abs_path(".")) / "_aiidasubmit.sh").read_text()
+    assert re.search(r"#SBATCH --uenv=foo --view=bar", submit_content, re.MULTILINE)

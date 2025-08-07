@@ -115,8 +115,19 @@ exclude = ['^examples/.*']
 ignore_missing_imports = true
 module = "f90nml"
 
+[tool.pyright]
+executionEnvironments = [{root = "src"}]
+venv = "types"
+venvPath = "$(hatch env find)"
+
 [tool.pytest.ini_options]
 addopts = ["--doctest-modules"]
+filterwarnings = [
+  "ignore:Object of type .* not in session, .* operation along .* will not proceed:sqlalchemy.exc.SAWarning",
+  "ignore:There is no current event loop:DeprecationWarning:plumpy",
+  "ignore:Use 'content=<...>' to upload raw bytes/text content.:DeprecationWarning:httpx",
+  "ignore:Creating AiiDA configuration folder.*:UserWarning"
+]
 markers = [
   "requires_icon: marks test to require icon installation",
   "cscsci: tests that are only supposed to run in CSCS-CI"
