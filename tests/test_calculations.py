@@ -2,6 +2,7 @@ import pathlib
 import re
 
 import pytest
+from aiida import orm
 from aiida.common import folders
 
 from aiida_icon import calculations, tools
@@ -65,6 +66,23 @@ def test_wrapper_script_autouse(icon_calc_with_wrapper, tmp_path):
     assert re.search(r"chmod 755 run_icon.sh", submit_content, re.MULTILINE)
     assert re.search(r"(('mpirun')|('srun')) .* './run_icon.sh'", submit_content, re.MULTILINE)
     assert "run_icon.sh" in [triplet[2] for triplet in calcinfo.local_copy_list]
+
+
+def test_setup_env_autouse(icon_builder, datapath, add_input_files, tmp_path):
+    inputs_path = datapath / "simple_icon_run" / "inputs"
+
+    add_input_files(inputs_path, icon_builder)
+    icon_builder.setup_env = orm.SinglefileData(datapath / "common" / "setup_env.sh")
+
+    prepare_path = tmp_path / "test_auto_setupenv"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+    calcinfo = calculations.IconCalculation(dict(icon_builder)).presubmit(sandbox_folder)
+
+    submit_content = (pathlib.Path(sandbox_folder.get_abs_path(".")) / "_aiidasubmit.sh").read_text()
+
+    assert calcinfo.prepend_text == "source ./setup_env.sh"
+    assert re.search(r"source ./setup_env.sh", submit_content, re.MULTILINE)
 
 
 def test_uenv_autouse(icon_code, datapath, add_input_files, tmp_path):
