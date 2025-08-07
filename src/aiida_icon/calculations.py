@@ -11,15 +11,20 @@ from aiida import engine, orm
 from aiida.common import datastructures, folders
 from aiida.parsers import parser
 
-from aiida_icon import exceptions
+from aiida_icon import builder, exceptions
 from aiida_icon.iconutils import masternml, modelnml
 
 if typing.TYPE_CHECKING:
+    from aiida.engine.processes import builder as process_builder
     from aiida.engine.processes.calcjobs import calcjob
 
 
 class IconCalculation(engine.CalcJob):
     """AiiDA calculation to run ICON."""
+
+    @classmethod
+    def get_builder(cls) -> process_builder.ProcessBuilder:
+        return builder.IconCalculationBuilder(cls)
 
     @classmethod
     def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core

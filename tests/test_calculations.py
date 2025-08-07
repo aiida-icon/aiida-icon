@@ -1,9 +1,10 @@
 import pathlib
+import re
 
 import pytest
 from aiida.common import folders
 
-from aiida_icon import calculations
+from aiida_icon import calculations, tools
 
 
 def test_prepare_for_calc(mock_icon_calc, tmp_path):
@@ -46,3 +47,37 @@ def test_additional_restart_parsing(case_name, parser_case, icon_result):
         pathlib.Path(parser.outputs.all_restart_files["restart_20000101T030000Z"].get_remote_path()).name
         == "multifile_restart_atm_20000101T030000Z.mfr"
     )
+
+
+def test_wrapper_script_autouse(icon_calc_with_wrapper, tmp_path):
+    prepare_path = tmp_path / "test_wrapper_script"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+    calcinfo = icon_calc_with_wrapper.presubmit(sandbox_folder)
+
+    testpath = pathlib.Path(sandbox_folder.get_abs_path("."))
+
+    submit_file = testpath / "_aiidasubmit.sh"
+    submit_content = submit_file.read_text()
+
+    assert "wrapper_script" in icon_calc_with_wrapper.inputs
+    assert icon_calc_with_wrapper.inputs.metadata.options.mpirun_extra_params == ["./run_icon.sh"]
+    assert re.search(r"chmod 755 run_icon.sh", submit_content, re.MULTILINE)
+    assert re.search(r"(('mpirun')|('srun')) .* './run_icon.sh'", submit_content, re.MULTILINE)
+    assert "run_icon.sh" in [triplet[2] for triplet in calcinfo.local_copy_list]
+
+
+def test_uenv_autouse(icon_code, datapath, add_input_files, tmp_path):
+    prepare_path = tmp_path / "test_autouenv"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+
+    tools.code_set_uenv(icon_code, uenv=tools.Uenv(name="foo", view="bar"))
+    builder = icon_code.get_builder()
+    add_input_files(datapath / "simple_icon_run" / "inputs", builder)
+    calc = calculations.IconCalculation(dict(builder))
+
+    _ = calc.presubmit(sandbox_folder)
+
+    submit_content = (pathlib.Path(sandbox_folder.get_abs_path(".")) / "_aiidasubmit.sh").read_text()
+    assert re.search(r"#SBATCH --uenv=foo --view=bar", submit_content, re.MULTILINE)

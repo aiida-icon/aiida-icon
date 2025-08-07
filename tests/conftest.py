@@ -6,6 +6,7 @@ import aiida
 import aiida.common
 import aiida.orm
 import pytest
+from aiida.engine.processes import builder as aiida_builder
 
 from aiida_icon.calculations import IconCalculation
 
@@ -57,9 +58,19 @@ def datapath() -> pathlib.Path:
 
 @pytest.fixture
 def parser_case(case_name, datapath: pathlib.Path):
-    case_name, exit_code, required_output_links, disallowed_output_links, finish_status_value = PARSER_CASES[case_name]
+    (
+        case_name,
+        exit_code,
+        required_output_links,
+        disallowed_output_links,
+        finish_status_value,
+    ) = PARSER_CASES[case_name]
     return ParserCase(
-        datapath / case_name, exit_code, required_output_links, disallowed_output_links, finish_status_value
+        datapath / case_name,
+        exit_code,
+        required_output_links,
+        disallowed_output_links,
+        finish_status_value,
     )
 
 
@@ -150,12 +161,21 @@ def icon_result(parser_case, aiida_computer_local):
 
 
 @pytest.fixture
-def mock_icon_calc(datapath, aiida_computer_local, aiida_code_installed):
-    """Create an IconCalculation which is ready to call .prepare_for_submission()."""
+def icon_code(aiida_computer_local, aiida_code_installed):
+    """Create an mock ICON code."""
     code = aiida_code_installed(default_calc_job_plugin="icon.icon", computer=aiida_computer_local())
-    inputs_path = datapath.absolute() / "simple_icon_run" / "inputs"
-    builder = code.get_builder()
-    make_remote = functools.partial(aiida.orm.RemoteData, computer=code.computer)
+    code.store()
+    return code
+
+
+@pytest.fixture
+def icon_builder(icon_code):
+    """Create an IconCalculationBuilder with a code already set."""
+    return icon_code.get_builder()
+
+
+def _add_input_files(inputs_path: pathlib.Path, builder: aiida_builder.ProcessBuilder) -> None:
+    make_remote = functools.partial(aiida.orm.RemoteData, computer=builder.code.computer)  # type: ignore[attr-defined] # ProcessBuilder has custom __getattr__
     builder.master_namelist = aiida.orm.SinglefileData(inputs_path / "icon_master.namelist")
     builder.model_namelist = aiida.orm.SinglefileData(inputs_path / "model.namelist")
     builder.dynamics_grid_file = make_remote(remote_path=str(inputs_path / "icon_grid_simple.nc"))
@@ -163,4 +183,26 @@ def mock_icon_calc(datapath, aiida_computer_local, aiida_code_installed):
     builder.rrtmg_sw = make_remote(remote_path=str(inputs_path / "rrtmg_sw.nc"))
     builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))
     builder.dmin_wetgrowth_lookup = make_remote(remote_path=str(inputs_path / "dmin_wetgrowth_lookup.nc"))
-    return IconCalculation(dict(builder))
+    if "wrapper_script.sh" in (p.name for p in inputs_path.iterdir()):
+        builder.wrapper_script = aiida.orm.SinglefileData(inputs_path / "wrapper_script.sh")
+
+
+@pytest.fixture
+def add_input_files():
+    return _add_input_files
+
+
+@pytest.fixture
+def mock_icon_calc(datapath, icon_builder):
+    """Create an IconCalculation which is ready to call .prepare_for_submission()."""
+    inputs_path = datapath.absolute() / "simple_icon_run" / "inputs"
+    _add_input_files(inputs_path, icon_builder)
+    return IconCalculation(dict(icon_builder))
+
+
+@pytest.fixture
+def icon_calc_with_wrapper(datapath, icon_builder):
+    """Create an IconCalculation which is ready to call .prepare_for_submission()."""
+    inputs_path = datapath.absolute() / "wrapper_script" / "inputs"
+    _add_input_files(inputs_path, icon_builder)
+    return IconCalculation(dict(icon_builder))
