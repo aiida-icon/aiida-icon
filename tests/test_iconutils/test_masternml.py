@@ -1,4 +1,5 @@
 import pathlib
+import textwrap
 
 import aiida
 import aiida.orm
@@ -26,6 +27,48 @@ def write_restart_options():
             restart_time_int_val="PT3H",
             checkpoint_time_int_val="PT3H",
         ),
+    )
+
+
+@pytest.fixture
+def single_model_mn():
+    return f90nml.reads(
+        textwrap.dedent(
+            """
+        &master_nml
+          model_base_dir="."
+        /
+        &master_model_nml
+          model_name="atm"
+          model_namelist_filename="<path>/atm.nml"
+        /
+        """
+        )
+    )
+
+
+@pytest.fixture
+def multi_model_mn():
+    return f90nml.reads(
+        textwrap.dedent(
+            """
+        &master_nml
+          model_base_dir="/absolute/path"
+        /
+        &master_model_nml
+          model_name="foo"
+          model_namelist_filename="foo.nml"
+        /
+        &master_model_nml
+          model_name="bar"
+          model_namelist_filename="<path>/bar.nml"
+        /
+        &master_model_nml
+          model_name="atm"
+          model_namelist_filename="relative/path/atm.nml"
+        /
+        """
+        )
     )
 
 
@@ -60,3 +103,19 @@ def test_modify_master_nml(write_restart_options):
     for section, section_data in options.items():
         for key, value in section_data.items():
             assert data[section][key] == value
+
+
+def test_iter_model_name_filepath_single(single_model_mn):
+    testee = dict(masternml.iter_model_name_filepath(single_model_mn))
+    assert str(testee["atm"]) == "atm.nml"
+    assert not testee["atm"].is_absolute()
+
+
+def test_iter_model_name_filepath_multi(multi_model_mn):
+    testee = dict(masternml.iter_model_name_filepath(multi_model_mn))
+    assert str(testee["foo"]) == "foo.nml"
+    assert not testee["foo"].is_absolute()
+    assert str(testee["bar"]) == "/absolute/path/bar.nml"
+    assert testee["bar"].is_absolute()
+    assert str(testee["atm"]) == "relative/path/atm.nml"
+    assert not testee["atm"].is_absolute()

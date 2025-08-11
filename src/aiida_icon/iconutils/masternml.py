@@ -97,7 +97,7 @@ def read_lrestart_write_last(master_nml: namelists.NMLInput) -> bool:
 
 def iter_model_namelists(master_nml: namelists.NMLInput) -> typing.Iterator[f90nml.namelist.Namelist]:
     """
-    Iterate over all model namelists blocks in a master namelist
+    Iterate over all model namelists blocks in a master namelist.
 
     Examples:
         >>> list(
@@ -118,9 +118,27 @@ def iter_model_namelists(master_nml: namelists.NMLInput) -> typing.Iterator[f90n
     yield from models
 
 
-def iter_model_namelists_filepaths(master_nml: f90nml.namelist.Namelist) -> typing.Iterator[tuple[str, pathlib.Path]]:
+def iter_model_name_filepath(master_nml: f90nml.namelist.Namelist) -> typing.Iterator[tuple[str, pathlib.Path]]:
+    """
+    Iterate over all model namelists (name, filename) pairs in a master namelist.
+
+    Examples:
+        >>> model_paths = dict(
+        ...     iter_model_name_filepath(
+        ...         f90nml.reads(
+        ...             "&master_nml\\nmodel_base_dir='/some/path'\\n/\\n"
+        ...             "&master_model_nml\\nmodel_name='atm'\\nmodel_namelist_filename='<path>/atm.nml'\\n/\\n"
+        ...             "&master_model_nml\\nmodel_name='foo'\\nmodel_namelist_filename='foo.nml'\\n/"
+        ...         )
+        ...     )
+        ... )
+        >>> str(model_paths["atm"])
+        '/some/path/atm.nml'
+        >>> str(model_paths["foo"])
+        'foo.nml'
+    """
     data = namelists.namelists_data(master_nml)
-    base_path = data.get("model_base_dir", "")
+    base_path = data["master_nml"].get("model_base_dir", "")
     for model in iter_model_namelists(master_nml):
-        filename = model["model_namelist_filename"].replace("<path>", r"{path}").format(path=base_path)
+        filename = model["model_namelist_filename"].replace(r"<path>", base_path)
         yield model["model_name"], pathlib.Path(filename)

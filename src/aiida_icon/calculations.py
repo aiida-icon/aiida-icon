@@ -30,15 +30,13 @@ class IconCalculation(engine.CalcJob):
     def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
-        spec.input("model_namelist", valid_type=orm.SinglefileData)
+        spec.input_namespace("models", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
+        spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
-        spec.input(
-            "dynamics_grid_file",
-            valid_type=orm.RemoteData,
-        )
+        spec.input("dynamics_grid_file", valid_type=orm.RemoteData, required=False)
         spec.input("ecrad_data", valid_type=orm.RemoteData, required=False)
-        spec.input("cloud_opt_props", valid_type=orm.RemoteData)
+        spec.input("cloud_opt_props", valid_type=orm.RemoteData, required=False)
         spec.input("dmin_wetgrowth_lookup", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_sw", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_lw", valid_type=orm.RemoteData, required=False)
@@ -88,8 +86,18 @@ class IconCalculation(engine.CalcJob):
         )
 
     def prepare_for_submission(self, folder: folders.Folder) -> datastructures.CalcInfo:
-        model_namelist_data = f90nml.reads(self.inputs.model_namelist.get_content())
-        master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
+        model_namelist_data = f90nml.namelist.Namelist()
+        if "model_namelist" in self.inputs:
+            model_namelist_data = f90nml.reads(
+                str(model_namelist_data) + "\n" + self.inputs.model_namelist.get_content(mode="r")
+            )
+        for nml in self.inputs.models.values():
+            match nml:
+                case orm.SinglefileData():
+                    model_namelist_data = f90nml.reads("\n".join([str(model_namelist_data), nml.get_content(mode="r")]))
+                case _:
+                    pass  # trust the user in this case
+        master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content(mode="r"))
 
         for output_folder in modelnml.read_output_stream_paths(model_namelist_data):
             folder.get_subfolder(output_folder, create=True)
@@ -99,19 +107,31 @@ class IconCalculation(engine.CalcJob):
 
         calcinfo = datastructures.CalcInfo()
         calcinfo.codes_info = [codeinfo]
-        calcinfo.remote_symlink_list = [
-            (
-                self.inputs.code.computer.uuid,
-                self.inputs.dynamics_grid_file.get_remote_path(),
-                model_namelist_data["grid_nml"]["dynamics_grid_filename"].strip(),
+        calcinfo.remote_symlink_list = []
+        if "dynamics_grid_file" in self.inputs:
+            calcinfo.remote_symlink_list.append(
+                (
+                    self.inputs.code.computer.uuid,
+                    self.inputs.dynamics_grid_file.get_remote_path(),
+                    model_namelist_data.get("grid_nml", {})
+                    .get(
+                        "dynamics_grid_filename",
+                        pathlib.Path(self.inputs.dynamics_grid_file.get_remote_path()).name,
+                    )
+                    .strip(),
+                )
             )
-        ]
         if "ecrad_data" in self.inputs:
             calcinfo.remote_symlink_list.append(
                 (
                     self.inputs.code.computer.uuid,
                     self.inputs.ecrad_data.get_remote_path(),
-                    model_namelist_data["radiation_nml"]["ecrad_data_path"].strip(),
+                    model_namelist_data.get("radiation_nml", {})
+                    .get(
+                        "ecrad_data_path",
+                        pathlib.Path(self.inputs.ecrad_data.get_remote_path()).name,
+                    )
+                    .strip(),
                 )
             )
         if "rrtmg_sw" in self.inputs:
@@ -138,13 +158,16 @@ class IconCalculation(engine.CalcJob):
                     modelnml.read_latest_restart_file_link_name(model_namelist_data),
                 )
             )
-        calcinfo.remote_copy_list = [
-            (
-                self.inputs.code.computer.uuid,
-                self.inputs.cloud_opt_props.get_remote_path(),
-                "ECHAM6_CldOptProps.nc",
+
+        calcinfo.remote_copy_list = []
+        if "cloud_opt_props" in self.inputs:
+            calcinfo.remote_copy_list.append(
+                (
+                    self.inputs.code.computer.uuid,
+                    self.inputs.cloud_opt_props.get_remote_path(),
+                    "ECHAM6_CldOptProps.nc",
+                )
             )
-        ]
         if "dmin_wetgrowth_lookup" in self.inputs:
             calcinfo.remote_copy_list.append(
                 (
@@ -160,12 +183,16 @@ class IconCalculation(engine.CalcJob):
                 self.inputs.master_namelist.filename,
                 "icon_master.namelist",
             ),
-            (
-                self.inputs.model_namelist.uuid,
-                self.inputs.model_namelist.filename,
-                master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
-            ),
         ]
+
+        if "model_namelist" in self.inputs:
+            calcinfo.local_copy_list.append(
+                (
+                    self.inputs.model_namelist.uuid,
+                    self.inputs.model_namelist.filename,
+                    master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
+                )
+            )
 
         if "wrapper_script" in self.inputs:
             calcinfo.local_copy_list.append(
@@ -175,6 +202,28 @@ class IconCalculation(engine.CalcJob):
                     "run_icon.sh",
                 )
             )
+
+        for model, nmlpath in masternml.iter_model_name_filepath(master_namelist_data):
+            if model in self.inputs.models:
+                if nmlpath.is_absolute():
+                    if isinstance(remote := self.inputs.models[model], orm.RemoteData):
+                        if nmlpath != pathlib.Path(remote.get_remote_path()):
+                            self.report(
+                                f"Warning: Remote path {remote.get_remote_path()} for model input '{model}' does not match absolute path given in master namelists ({nmlpath}). Using the path in master namelists."
+                            )
+                    else:  # orm.SinglefileData case
+                        self.report(
+                            f"Warning: Local file input for model '{model}' ignored, because master namelist gives an absolute remote path for it (AiiDA will not write files outside the run directory)."
+                        )
+                else:
+                    if nmlpath.parent != pathlib.Path("."):
+                        folder.get_subfolder(nmlpath.parent, create=True)
+                    if isinstance(remote := self.inputs.models[model], orm.RemoteData):
+                        calcinfo.remote_copy_list.append((remote.uuid, remote.get_remote_path(), str(nmlpath)))
+                    elif isinstance(singlefile := self.inputs.models[model], orm.SinglefileData):
+                        calcinfo.local_copy_list.append((singlefile.uuid, singlefile.filename, str(nmlpath)))
+            elif nmlpath.is_absolute():
+                self.report(f"Warning: Model namelist for model '{model}' is not tracked for provenance!")
 
         calcinfo.retrieve_list = [
             "finish.status",

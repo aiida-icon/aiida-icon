@@ -2,6 +2,7 @@ import pathlib
 import re
 
 import pytest
+from aiida import orm
 from aiida.common import folders
 
 from aiida_icon import calculations, tools
@@ -81,3 +82,51 @@ def test_uenv_autouse(icon_code, datapath, add_input_files, tmp_path):
 
     submit_content = (pathlib.Path(sandbox_folder.get_abs_path(".")) / "_aiidasubmit.sh").read_text()
     assert re.search(r"#SBATCH --uenv=foo --view=bar", submit_content, re.MULTILINE)
+
+
+def test_models_namespace_abs_empty(icon_code, datapath, tmp_path, caplog):
+    prepare_path = tmp_path / "test_autouenv"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+
+    builder = icon_code.get_builder()
+    builder.master_namelist = orm.SinglefileData(str(datapath / "common" / "abspath_models.nml"))
+    calc = calculations.IconCalculation(dict(builder))
+    calcinfo = calc.presubmit(sandbox_folder)
+
+    assert calcinfo.remote_symlink_list == []
+    assert calcinfo.remote_copy_list == []
+    assert len(calcinfo.local_copy_list) == 1  # only master nml
+    assert dict(calc.inputs.models) == {}
+    assert re.search(
+        r"Warning: Model namelist for model 'foo' is not tracked for provenance",
+        caplog.record_tuples[0][2],
+        re.MULTILINE,
+    )
+    assert re.search(
+        r"Warning: Model namelist for model 'bar' is not tracked for provenance",
+        caplog.record_tuples[1][2],
+        re.MULTILINE,
+    )
+
+
+def test_models_namespace_abs_full(icon_code, datapath, tmp_path, caplog):
+    prepare_path = tmp_path / "test_autouenv"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+
+    builder = icon_code.get_builder()
+    builder.master_namelist = orm.SinglefileData(str(datapath / "common" / "abspath_models.nml"))
+    builder.models.foo = orm.RemoteData(computer=icon_code.computer, remote_path="/project/experiment/model/foo.nml")
+    builder.models.bar = orm.RemoteData(computer=icon_code.computer, remote_path="/some/non/matching/path/bar.nml")
+    calc = calculations.IconCalculation(dict(builder))
+    calcinfo = calc.presubmit(sandbox_folder)
+
+    assert calcinfo.remote_symlink_list == []
+    assert calcinfo.remote_copy_list == []
+    assert len(calcinfo.local_copy_list) == 1  # only master nml
+    assert re.search(
+        r"Remote path .* for model input 'bar' does not match absolute path given in master namelists (.*). Using the path in master namelists.",
+        caplog.record_tuples[0][2],
+        re.MULTILINE,
+    )

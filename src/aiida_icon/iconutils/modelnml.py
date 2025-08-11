@@ -31,7 +31,7 @@ def read_output_stream_paths(
 ) -> list[pathlib.Path]:
     data = namelists.namelists_data(model_nml)
 
-    output_data = data["output_nml"]
+    output_data = data.get("output_nml", f90nml.namelist.Namelist())
 
     # wrap in list if there is only one
     stream_spec_list: list[f90nml.namelist.Namelist] = (
