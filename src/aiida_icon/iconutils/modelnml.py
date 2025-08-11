@@ -1,19 +1,10 @@
 import pathlib
-from typing import NamedTuple
 
 import f90nml
 
 from aiida_icon import exceptions
 from aiida_icon.iconutils import namelists
-
-
-class OutputStreamInfo(NamedTuple):
-    """Information about an ICON output stream."""
-
-    path: pathlib.Path
-    output_filename: str
-    filename_format: str
-    stream_index: int
+from aiida_icon.tools import OutputStreamInfo
 
 
 def read_restart_file_pattern(model_nml: namelists.NMLInput) -> str:

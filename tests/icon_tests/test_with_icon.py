@@ -6,6 +6,7 @@ import pytest
 from aiida_icon import calculations
 from aiida_icon.calculations import IconCalculation
 from aiida_icon.iconutils.masternml import modify_master_nml
+from tests.utils import assert_output_streams
 
 
 @pytest.mark.requires_icon
@@ -25,27 +26,10 @@ def test_simple_icon_run(simple_icon_run_builder: aiida.engine.ProcessBuilder):
         result["finish_status"].value == "RESTART"
     ), f"Finish status is not RESTART. Please check calculation folder in '{remote_path}'."
 
-    assert "output_streams" in result, "No output_streams contained in the results."
+    # Test output streams
+    expected_streams_and_files: dict[str, list[str]] = {"simple_icon_run_atm_2d": [], "simple_icon_run_atm_3d_pl": []}
 
-    output_streams = result["output_streams"]
-
-    # Test structure and keys
-    expected_keys = {"simple_icon_run_atm_2d", "simple_icon_run_atm_3d_pl"}
-    assert (
-        set(output_streams.keys()) == expected_keys
-    ), f"Expected keys {expected_keys}, got {set(output_streams.keys())}"
-
-    # Test all values are RemoteData
-    assert all(
-        isinstance(stream, aiida.orm.RemoteData) for stream in output_streams.values()
-    ), "All output streams should be RemoteData"
-
-    assert hasattr(node.outputs, "output_streams"), "No output_streams attached as node output."
-    assert all(
-        hasattr(node.outputs.output_streams, key) for key in expected_keys
-    ), "Not the right outputs attached to output_streams AttributeDict."
-
-    breakpoint()
+    assert_output_streams(result, node, expected_streams_and_files)
 
     parser = calculations.IconParser(typing.cast(aiida.orm.CalcJobNode, node))
     exit_code = parser.parse()

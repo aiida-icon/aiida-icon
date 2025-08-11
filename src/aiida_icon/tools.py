@@ -11,6 +11,7 @@ class Uenv:
     name: str
     view: str = ""
 
+
 class OutputStreamInfo(NamedTuple):
     """Information about an ICON output stream."""
 
@@ -18,7 +19,6 @@ class OutputStreamInfo(NamedTuple):
     output_filename: str
     filename_format: str
     stream_index: int
-
 
 
 def code_set_uenv(code: orm.Code, *, uenv: Uenv) -> None:

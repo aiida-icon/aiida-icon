@@ -240,7 +240,6 @@ class IconParser(parser.Parser):
 
         # Parse output streams
         output_streams = self.parse_output_streams()
-        breakpoint()
         if output_streams:
             self.out("output_streams", output_streams)
 
@@ -369,4 +368,3 @@ class IconParser(parser.Parser):
                 continue
 
         return output_streams
-

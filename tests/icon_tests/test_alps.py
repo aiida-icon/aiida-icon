@@ -8,6 +8,7 @@ import pytest
 
 from aiida_icon import tools
 from aiida_icon.site_support import cscs
+from tests.utils import assert_output_streams
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -121,7 +122,6 @@ def test_r2b4_santis(icon, master_nml, model_nml, grid_file, initdata_remotes, m
     builder._merge({"metadata": metadata})  # noqa: SLF001 # _merge is not private, merely named to avoid clashes
     cscs.santis.setup_for_santis_cpu(builder)
     res, node = aiida.engine.run_get_node(builder)
-
     print(f"workdir: {node.get_remote_workdir()}")  # noqa: T201 # leave this to be able to check the workdir in case of failure
 
     assert node.process_state is aiida.engine.ProcessState.FINISHED
@@ -131,3 +131,11 @@ def test_r2b4_santis(icon, master_nml, model_nml, grid_file, initdata_remotes, m
     assert node.exit_status == 0
     assert node.exit_message is None
     assert node.exit_code is None
+
+    # Test output streams with expected files
+    expected_streams_and_files = {
+        "exclaim_ape_R02B04_atm_2d": ["_20000101T000003Z.nc"],
+        "exclaim_ape_R02B04_atm_3d_pl": ["_20000101T000000Z.nc"],
+    }
+
+    assert_output_streams(res, node, expected_streams_and_files)
