@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from aiida.engine.processes import builder as process_builder
     from aiida.engine.processes.calcjobs import calcjob
 
-    from aiida_icon.tools import OutputStreamInfo
+    from aiida_icon.iconutils.modelnml import OutputStreamInfo
 
 
 class IconCalculation(engine.CalcJob):
@@ -320,6 +320,7 @@ class IconParser(parser.Parser):
 
     def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
         """Create a meaningful key from a stream info object."""
+        # PRCOMMENT: Can output_filename be unset in an ICON namelist file (e.g., using some default)?
         if stream_info.output_filename:
             # Clean the output filename path for use as a key
             clean_path = pathlib.Path(stream_info.output_filename)
@@ -339,10 +340,8 @@ class IconParser(parser.Parser):
         remote_folder = typing.cast(orm.RemoteData, self.node.outputs.remote_folder)
         remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
-        stream_infos = modelnml.read_output_stream_infos(self.node.inputs.model_namelist)
-
         # Create RemoteData nodes for each output directory
-        for stream_info in stream_infos:
+        for stream_info in modelnml.read_output_stream_infos(self.node.inputs.model_namelist):
             stream_key = self._create_stream_key(stream_info)
             full_output_path = remote_base_path / stream_info.path
 
