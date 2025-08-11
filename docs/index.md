@@ -51,7 +51,7 @@ The following is a summary of the [AiiDA Quick Install Guide](https://aiida.read
    3. Run `verdi computer test <computername>` to make sure a connection can be established.
 
 <!-- prettier-ignore-start -->
-!!! Warning:
+!!! warning
     You have to choose in step 3 already when you set "Transport" and "Scheduler", whether you will use "ssh" or "firecrest" in step 4.
     Pick "core.ssh" for transport and combine it with any of the available schedulers to connect with ssh OR pick "firecrest" for **both**
     (firecrest is used for both file transport as well as communication with the scheduler).
