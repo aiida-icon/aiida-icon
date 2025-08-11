@@ -105,9 +105,8 @@ def metadata() -> dict[str, Any]:
             },
             "max_wallclock_seconds": 5 * 60,
             "max_memory_kb": 128 * 1000000,
-            # "queue_name": "debug",
-            # "account": "csstaff",
-            "account": "cwd01",
+            "queue_name": "debug",
+            "account": "csstaff",
         }
     }
 
