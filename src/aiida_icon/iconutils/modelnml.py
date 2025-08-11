@@ -51,7 +51,7 @@ def read_output_stream_paths(
     return [_out_stream_path(stream_spec) for stream_spec in stream_spec_list]
 
 
-def read_output_stream_info(
+def read_output_stream_infos(
     model_nml: namelists.NMLInput,
 ) -> list[OutputStreamInfo]:
     """Read detailed output stream information from the model namelist."""

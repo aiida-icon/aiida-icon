@@ -45,6 +45,8 @@ def test_simple_icon_run(simple_icon_run_builder: aiida.engine.ProcessBuilder):
         hasattr(node.outputs.output_streams, key) for key in expected_keys
     ), "Not the right outputs attached to output_streams AttributeDict."
 
+    breakpoint()
+
     parser = calculations.IconParser(typing.cast(aiida.orm.CalcJobNode, node))
     exit_code = parser.parse()
     assert (

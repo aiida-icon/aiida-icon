@@ -18,6 +18,8 @@ if typing.TYPE_CHECKING:
     from aiida.engine.processes import builder as process_builder
     from aiida.engine.processes.calcjobs import calcjob
 
+    from aiida_icon.tools import OutputStreamInfo
+
 
 class IconCalculation(engine.CalcJob):
     """AiiDA calculation to run ICON."""
@@ -50,7 +52,7 @@ class IconCalculation(engine.CalcJob):
             non_db=True,
             required=False,
             valid_type=orm.RemoteData,
-            help="The various output streams of the ICON calculation",
+            help="Output streams of the ICON calculation",
         )
         spec.output("finish_status")
         options = spec.inputs["metadata"]["options"]  # type: ignore[index] # guaranteed correct by aiida-core
@@ -238,6 +240,7 @@ class IconParser(parser.Parser):
 
         # Parse output streams
         output_streams = self.parse_output_streams()
+        breakpoint()
         if output_streams:
             self.out("output_streams", output_streams)
 
@@ -313,6 +316,23 @@ class IconParser(parser.Parser):
 
         return result
 
+    def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
+        """Create a meaningful key from stream info."""
+        if stream_info.output_filename:
+            # Clean the output filename path for use as a key
+            clean_path = pathlib.Path(stream_info.output_filename)
+            # Remove leading ./ and trailing /
+            clean_name = str(clean_path).lstrip("./").rstrip("/")
+            stream_key = clean_name.replace("/", "__")
+        else:
+            stream_key = f"stream_{stream_info.stream_index:02d}"
+
+        # Ensure the key is valid (not empty and doesn't start with underscore)
+        if not stream_key:
+            stream_key = f"stream_{stream_info.stream_index:02d}"
+
+        return stream_key
+
     def parse_output_streams(self) -> dict[str, orm.RemoteData]:
         """Parse output streams from the model namelist and create RemoteData nodes."""
         output_streams = {}
@@ -322,25 +342,11 @@ class IconParser(parser.Parser):
         remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
         # Get detailed output stream information from the namelist
-        stream_infos = modelnml.read_output_stream_info(self.node.inputs.model_namelist)
+        stream_infos = modelnml.read_output_stream_infos(self.node.inputs.model_namelist)
 
         # Create RemoteData nodes for each output directory
         for stream_info in stream_infos:
-            # Create a meaningful key from the output filename or directory
-            if stream_info.output_filename:
-                # Clean the output filename path for use as a key
-                clean_path = pathlib.Path(stream_info.output_filename)
-                # Remove leading ./ and trailing /
-                clean_name = str(clean_path).lstrip("./").rstrip("/")
-                stream_key = clean_name.replace("/", "__")
-            else:
-                stream_key = f"stream_{stream_info.stream_index:02d}"
-
-            # Ensure the key is valid (not empty and doesn't start with underscore)
-            if not stream_key or stream_key.startswith("_"):
-                stream_key = f"stream_{stream_info.stream_index:02d}"
-
-            # Create RemoteData node pointing to the output directory
+            stream_key = self._create_stream_key(stream_info)
             full_output_path = remote_base_path / stream_info.path
 
             # Check if the directory actually exists using RemoteData methods
@@ -363,3 +369,4 @@ class IconParser(parser.Parser):
                 continue
 
         return output_streams
+
