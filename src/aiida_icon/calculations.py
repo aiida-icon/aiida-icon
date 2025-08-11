@@ -101,8 +101,8 @@ class IconCalculation(engine.CalcJob):
         model_namelist_data = f90nml.reads(self.inputs.model_namelist.get_content())
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
 
-        for output_folder in modelnml.read_output_stream_paths(model_namelist_data):
-            folder.get_subfolder(output_folder, create=True)
+        for stream_info in modelnml.read_output_stream_infos(model_namelist_data):
+            folder.get_subfolder(stream_info.path, create=True)
 
         codeinfo = datastructures.CodeInfo()
         codeinfo.code_uuid = self.inputs.code.uuid
@@ -239,9 +239,12 @@ class IconParser(parser.Parser):
             self.out("latest_restart_file", restarts.latest_restart)
 
         # Parse output streams
-        output_streams = self.parse_output_streams()
-        if output_streams:
-            self.out("output_streams", output_streams)
+        try:
+            output_streams = self.parse_output_streams()
+            if output_streams:
+                self.out("output_streams", output_streams)
+        except OSError:
+            return self.exit_codes.PARTIALLY_PARSED
 
         match finish_status.status:
             case FinishStatus.OK:
@@ -316,18 +319,14 @@ class IconParser(parser.Parser):
         return result
 
     def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
-        """Create a meaningful key from stream info."""
+        """Create a meaningful key from a stream info object."""
         if stream_info.output_filename:
             # Clean the output filename path for use as a key
             clean_path = pathlib.Path(stream_info.output_filename)
-            # Remove leading ./ and trailing /
             clean_name = str(clean_path).lstrip("./").rstrip("/")
+            # PRCOMMENT: Can the `output_filename`s contain slashes, and if so, do we need to replace them?
             stream_key = clean_name.replace("/", "__")
         else:
-            stream_key = f"stream_{stream_info.stream_index:02d}"
-
-        # Ensure the key is valid (not empty and doesn't start with underscore)
-        if not stream_key:
             stream_key = f"stream_{stream_info.stream_index:02d}"
 
         return stream_key
@@ -337,10 +336,9 @@ class IconParser(parser.Parser):
         output_streams = {}
 
         # Get the remote folder where outputs are stored
-        remote_folder = self.node.outputs.remote_folder
+        remote_folder = typing.cast(orm.RemoteData, self.node.outputs.remote_folder)
         remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
-        # Get detailed output stream information from the namelist
         stream_infos = modelnml.read_output_stream_infos(self.node.inputs.model_namelist)
 
         # Create RemoteData nodes for each output directory
@@ -348,23 +346,11 @@ class IconParser(parser.Parser):
             stream_key = self._create_stream_key(stream_info)
             full_output_path = remote_base_path / stream_info.path
 
-            # Check if the directory actually exists using RemoteData methods
-            try:
-                # Use the RemoteData.listdir() method to check if directory exists and is accessible
-                files_in_dir = remote_folder.listdir(str(stream_info.path))
-                self.logger.info("Found %s files in output directory '%s'", len(files_in_dir), stream_info.path)
+            output_streams[stream_key] = orm.RemoteData(
+                computer=self.node.computer,
+                remote_path=str(full_output_path),
+            )
 
-                output_streams[stream_key] = orm.RemoteData(
-                    computer=self.node.computer,
-                    remote_path=str(full_output_path),
-                )
-
-                self.logger.info("Registered output stream '%s' -> %s", stream_key, full_output_path)
-
-            except OSError as e:
-                self.logger.warning("Output directory %s not found or not accessible: %s", stream_info.path, e)
-                # Optionally still register it, or skip it depending on your preference
-                # For now, let's skip missing directories
-                continue
+            self.logger.info("Registered output stream '%s' -> %s", stream_key, full_output_path)
 
         return output_streams
