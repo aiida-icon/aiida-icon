@@ -77,10 +77,10 @@ def modify_master_nml(master_nml: aiida.orm.SinglefileData, options: aiida.orm.D
         ...     ),
         ... )
         >>> new_data = f90nml.reads(new_master.get_content(mode="r"))
-        >>> new_data["master_nml"]
-        Namelist({'lrestart': True, 'read_restart_namelists': True})
-        >>> new_data["master_time_control_nml"]
-        Namelist({'calendar': 'proleptic gregorian'})
+        >>> dict(new_data["master_nml"])
+        {'lrestart': True, 'read_restart_namelists': True}
+        >>> dict(new_data["master_time_control_nml"])
+        {'calendar': 'proleptic gregorian'}
     """
     data = f90nml.reads(master_nml.get_content(mode="r"))
     for section in data:
@@ -101,13 +101,14 @@ def iter_model_namelists(master_nml: namelists.NMLInput) -> typing.Iterator[f90n
 
     Examples:
         >>> list(
-        ...     iter_model_namelists(
+        ...     dict(nml)
+        ...     for nml in iter_model_namelists(
         ...         f90nml.reads(
         ...             "&master_model_nml\\nmodel_name='atm'\\n/\\n&master_model_nml\\nmodel_name='foo'\\n/"
         ...         )
         ...     )
         ... )
-        [Namelist({'model_name': 'atm'}), Namelist({'model_name': 'foo'})]
+        [{'model_name': 'atm'}, {'model_name': 'foo'}]
     """
     data = namelists.namelists_data(master_nml)
 
