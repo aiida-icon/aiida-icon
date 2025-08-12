@@ -60,7 +60,7 @@ def master_nml(datapath) -> aiida.orm.SinglefileData:
 
 
 @pytest.fixture
-def model_nml(datapath) -> aiida.orm.SinglefileData:
+def atm_nml(datapath) -> aiida.orm.SinglefileData:
     filename = "NAMELIST_exclaim_ape_R02B04"
     filepath = str(datapath / "r2b4_inputs" / filename)
     return aiida.orm.SinglefileData(file=filepath)
@@ -111,10 +111,10 @@ def metadata() -> dict[str, Any]:
 
 
 @pytest.mark.cscsci
-def test_r2b4_santis(icon, master_nml, model_nml, grid_file, initdata_remotes, metadata):
+def test_r2b4_santis(icon, master_nml, atm_nml, grid_file, initdata_remotes, metadata):
     builder = icon.get_builder()
     builder.master_namelist = master_nml
-    builder.model_namelist = model_nml
+    builder.models.atm = atm_nml
     builder.dynamics_grid_file = grid_file
     for key, value in initdata_remotes.items():
         builder[key] = value

@@ -2,10 +2,11 @@ import pathlib
 import re
 
 import pytest
-from aiida import orm
+from aiida import engine, orm
+from aiida.common import exceptions as aiidaxc
 from aiida.common import folders
 
-from aiida_icon import calculations, tools
+from aiida_icon import builder, calculations, tools
 
 
 def test_prepare_for_calc(mock_icon_calc, tmp_path):
@@ -130,3 +131,26 @@ def test_models_namespace_abs_full(icon_code, datapath, tmp_path, caplog):
         caplog.record_tuples[0][2],
         re.MULTILINE,
     )
+
+
+def test_models_not_required(icon_code, datapath, caplog):
+    ibuilder = builder.IconCalculationBuilder(calculations.IconCalculation)
+    ibuilder.code = icon_code
+    ibuilder.metadata.dry_run = True
+    ibuilder.master_namelist = orm.SinglefileData(datapath / "common" / "abspath_models.nml")
+    engine.run(ibuilder)
+    assert re.search(
+        r"Warning: Model namelist for model 'foo' is not tracked for provenance.", caplog.record_tuples[0][2]
+    )
+    assert re.search(
+        r"Warning: Model namelist for model 'bar' is not tracked for provenance.", caplog.record_tuples[1][2]
+    )
+
+
+def test_models_required(icon_code, datapath):
+    ibuilder = builder.IconCalculationBuilder(calculations.IconCalculation)
+    ibuilder.code = icon_code
+    ibuilder.metadata.dry_run = True
+    ibuilder.master_namelist = orm.SinglefileData(datapath / "common" / "relpath_models.nml")
+    with pytest.raises(aiidaxc.InputValidationError, match=r"Missing input for model 'foo'"):
+        engine.run(ibuilder)

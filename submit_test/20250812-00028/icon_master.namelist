@@ -1,0 +1,13 @@
+! two models, both with an absolute path (assumed to be valid on the hpc machine)
+! and using the <path> placeholder
+&master_nml
+model_base_dir="/project/experiment/model"
+/
+&master_model_nml
+model_name="foo"
+model_namelist_filename="<path>/foo.nml"
+/
+&master_model_nml
+model_name="bar"
+model_namelist_filename="<path>/bar.nml"
+/

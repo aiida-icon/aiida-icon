@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import functools
 import pathlib
 import re
 import typing
@@ -9,9 +10,10 @@ import typing
 import f90nml
 from aiida import engine, orm
 from aiida.common import datastructures, folders
+from aiida.engine.processes import ports
 from aiida.parsers import parser
 
-from aiida_icon import builder, exceptions
+from aiida_icon import builder, calcutils, exceptions
 from aiida_icon.iconutils import masternml, modelnml
 
 if typing.TYPE_CHECKING:
@@ -31,6 +33,7 @@ class IconCalculation(engine.CalcJob):
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
         spec.input_namespace("models", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
+        # deprecated, use "models" namespace instead. Kept around for validity of existing nodes
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
@@ -86,17 +89,7 @@ class IconCalculation(engine.CalcJob):
         )
 
     def prepare_for_submission(self, folder: folders.Folder) -> datastructures.CalcInfo:
-        model_namelist_data = f90nml.namelist.Namelist()
-        if "model_namelist" in self.inputs:
-            model_namelist_data = f90nml.reads(
-                str(model_namelist_data) + "\n" + self.inputs.model_namelist.get_content(mode="r")
-            )
-        for nml in self.inputs.models.values():
-            match nml:
-                case orm.SinglefileData():
-                    model_namelist_data = f90nml.reads("\n".join([str(model_namelist_data), nml.get_content(mode="r")]))
-                case _:
-                    pass  # trust the user in this case
+        model_namelist_data = calcutils.collect_model_nml(self.inputs)
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content(mode="r"))
 
         for output_folder in modelnml.read_output_stream_paths(model_namelist_data):
@@ -108,30 +101,21 @@ class IconCalculation(engine.CalcJob):
         calcinfo = datastructures.CalcInfo()
         calcinfo.codes_info = [codeinfo]
         calcinfo.remote_symlink_list = []
+        make_remote_path_triplet_from_models = functools.partial(
+            calcutils.make_remote_path_triplet, nml_data=model_namelist_data
+        )
         if "dynamics_grid_file" in self.inputs:
             calcinfo.remote_symlink_list.append(
-                (
-                    self.inputs.code.computer.uuid,
-                    self.inputs.dynamics_grid_file.get_remote_path(),
-                    model_namelist_data.get("grid_nml", {})
-                    .get(
-                        "dynamics_grid_filename",
-                        pathlib.Path(self.inputs.dynamics_grid_file.get_remote_path()).name,
-                    )
-                    .strip(),
+                make_remote_path_triplet_from_models(
+                    self.inputs.dynamics_grid_file,
+                    lookup_path="grid_nml.dynamics_grid_filename",
                 )
             )
         if "ecrad_data" in self.inputs:
             calcinfo.remote_symlink_list.append(
-                (
-                    self.inputs.code.computer.uuid,
-                    self.inputs.ecrad_data.get_remote_path(),
-                    model_namelist_data.get("radiation_nml", {})
-                    .get(
-                        "ecrad_data_path",
-                        pathlib.Path(self.inputs.ecrad_data.get_remote_path()).name,
-                    )
-                    .strip(),
+                make_remote_path_triplet_from_models(
+                    self.inputs.ecrad_data,
+                    lookup_path="radiation_nml.ecrad_data_path",
                 )
             )
         if "rrtmg_sw" in self.inputs:
@@ -204,26 +188,13 @@ class IconCalculation(engine.CalcJob):
             )
 
         for model, nmlpath in masternml.iter_model_name_filepath(master_namelist_data):
-            if model in self.inputs.models:
-                if nmlpath.is_absolute():
-                    if isinstance(remote := self.inputs.models[model], orm.RemoteData):
-                        if nmlpath != pathlib.Path(remote.get_remote_path()):
-                            self.report(
-                                f"Warning: Remote path {remote.get_remote_path()} for model input '{model}' does not match absolute path given in master namelists ({nmlpath}). Using the path in master namelists."
-                            )
-                    else:  # orm.SinglefileData case
-                        self.report(
-                            f"Warning: Local file input for model '{model}' ignored, because master namelist gives an absolute remote path for it (AiiDA will not write files outside the run directory)."
-                        )
-                else:
-                    if nmlpath.parent != pathlib.Path("."):
-                        folder.get_subfolder(nmlpath.parent, create=True)
-                    if isinstance(remote := self.inputs.models[model], orm.RemoteData):
-                        calcinfo.remote_copy_list.append((remote.uuid, remote.get_remote_path(), str(nmlpath)))
-                    elif isinstance(singlefile := self.inputs.models[model], orm.SinglefileData):
-                        calcinfo.local_copy_list.append((singlefile.uuid, singlefile.filename, str(nmlpath)))
-            elif nmlpath.is_absolute():
-                self.report(f"Warning: Model namelist for model '{model}' is not tracked for provenance!")
+            actions = calcutils.make_model_actions(
+                model, nmlpath, self.inputs.get("models", ports.PortNamespace()), self
+            )
+            for path in actions.create_dirs:
+                folder.get_subfolder(path, create=True)
+            calcinfo.local_copy_list += actions.local_copy_list
+            calcinfo.remote_copy_list += actions.remote_copy_list
 
         calcinfo.retrieve_list = [
             "finish.status",

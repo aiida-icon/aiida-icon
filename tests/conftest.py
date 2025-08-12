@@ -177,7 +177,7 @@ def icon_builder(icon_code):
 def _add_input_files(inputs_path: pathlib.Path, builder: aiida_builder.ProcessBuilder) -> None:
     make_remote = functools.partial(aiida.orm.RemoteData, computer=builder.code.computer)  # type: ignore[attr-defined] # ProcessBuilder has custom __getattr__
     builder.master_namelist = aiida.orm.SinglefileData(inputs_path / "icon_master.namelist")
-    builder.model_namelist = aiida.orm.SinglefileData(inputs_path / "model.namelist")
+    builder.models.atm = aiida.orm.SinglefileData(inputs_path / "model.namelist")  # type: ignore[attr-defined] # dynamic port namespace
     builder.dynamics_grid_file = make_remote(remote_path=str(inputs_path / "icon_grid_simple.nc"))
     builder.ecrad_data = make_remote(remote_path=str(inputs_path / "ecrad_data"))
     builder.rrtmg_sw = make_remote(remote_path=str(inputs_path / "rrtmg_sw.nc"))

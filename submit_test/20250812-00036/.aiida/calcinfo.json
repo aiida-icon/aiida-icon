@@ -1,0 +1,21 @@
+{
+  "codes_info": [{ "code_uuid": "6fac9e13-eced-47e4-9adf-832afea7234f" }],
+  "remote_symlink_list": [],
+  "remote_copy_list": [],
+  "local_copy_list": [
+    [
+      "c1169beb-dcd7-4f57-b0ab-a5cc0ea4318f",
+      "abspath_models.nml",
+      "icon_master.namelist"
+    ]
+  ],
+  "retrieve_list": [
+    "finish.status",
+    "nml.atmo.log",
+    "output_schedule.txt",
+    "_scheduler-stdout.txt",
+    "_scheduler-stderr.txt"
+  ],
+  "uuid": "72344d80-0faf-4469-be68-fe8fa9c71355",
+  "file_copy_operation_order": [2, 0, 1]
+}

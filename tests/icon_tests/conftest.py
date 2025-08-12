@@ -72,7 +72,7 @@ def simple_icon_run_builder(
     builder = code.get_builder()
     make_remote = functools.partial(aiida.orm.RemoteData, computer=code.computer)
     builder.master_namelist = aiida.orm.SinglefileData(inputs_path / "icon_master.namelist")
-    builder.model_namelist = aiida.orm.SinglefileData(inputs_path / "model.namelist")
+    builder.models.atm = aiida.orm.SinglefileData(inputs_path / "model.namelist")  # type: ignore[attr-defined] # dynamic port namespace
     builder.dynamics_grid_file = aiida.orm.RemoteData(
         remote_path=str(icon_grid_simple_path), computer=localhost_computer
     )
