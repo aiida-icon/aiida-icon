@@ -34,7 +34,7 @@ def test_make_remote_path_triplet_with_lookup(aiida_computer_local):
     comp = aiida_computer_local()
     some_file = orm.RemoteData(computer=comp, remote_path="/some/file")
     testee = calcutils.make_remote_path_triplet(
-        some_file, lookup_path="foo.bar", nml_data=f90nml.Namelist({"foo": {"bar": "newname"}})
+        some_file, lookup_path="foo.bar", nml_data=f90nml.Namelist({"foo": {"bar": "   newname"}})
     )
     assert testee[2] == "newname"
 

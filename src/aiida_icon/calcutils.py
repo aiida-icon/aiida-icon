@@ -68,7 +68,7 @@ def make_remote_path_triplet(
         parts = lookup_path.split(".")
         for part in parts[:-1]:
             nml_data = nml_data.get(part, {})
-        tgt = nml_data.get(parts[-1], tgt)
+        tgt = nml_data.get(parts[-1], tgt).strip()
     return (comp, src, tgt)
 
 
