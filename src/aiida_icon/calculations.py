@@ -293,9 +293,12 @@ class IconParser(parser.Parser):
 
         files = remote_folder.listdir()
         result = RestartResult(status=RestartStatus.MISSING)
+        all_restarts_pattern = ""
+        latest_restart_name = ""
         try:
-            all_restarts_pattern = modelnml.read_restart_file_pattern(self.node.inputs.model_namelist)
-            latest_restart_name = modelnml.read_latest_restart_file_link_name(self.node.inputs.model_namelist)
+            modelnml_data = calcutils.collect_model_nml(self.node.get_builder_restart())
+            all_restarts_pattern = modelnml.read_restart_file_pattern(modelnml_data)
+            latest_restart_name = modelnml.read_latest_restart_file_link_name(modelnml_data)
         except exceptions.SinglefileRestartNotImplementedError:
             self.logger.info("Can not parse restart file names, singlefile mode is not supported.")
             if restart_indicated:

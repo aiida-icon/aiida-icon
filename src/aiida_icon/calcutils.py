@@ -11,12 +11,12 @@ from aiida.common import exceptions as aiidaxc
 
 if typing.TYPE_CHECKING:
     from aiida import engine
-    from aiida.engine.processes import ports
+    from aiida.engine.processes import builder, ports
     from plumpy import utils as putils
 
 
 def collect_model_nml(
-    namespace: ports.PortNamespace | putils.AttributesFrozendict, *, download: bool = False
+    namespace: ports.PortNamespace | putils.AttributesFrozendict | builder.ProcessBuilder, *, download: bool = False
 ) -> f90nml.Namelist:
     result = f90nml.Namelist()
     # TODO: this is for the old way of passing a single model nml,
