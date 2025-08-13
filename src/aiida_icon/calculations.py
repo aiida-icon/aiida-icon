@@ -33,7 +33,12 @@ class IconCalculation(engine.CalcJob):
         spec.input("model_namelist", valid_type=orm.SinglefileData)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
-        spec.input("setup_env", valid_type=orm.SinglefileData, required=False, help="A file that is sourced before the execution of icon but after the 'wrapper_script'")
+        spec.input(
+            "setup_env",
+            valid_type=orm.SinglefileData,
+            required=False,
+            help="A file that is sourced before the execution of ICON but after the 'wrapper_script'.",
+        )
         spec.input(
             "dynamics_grid_file",
             valid_type=orm.RemoteData,
