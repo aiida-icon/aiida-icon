@@ -10,6 +10,7 @@ import typing
 import f90nml
 from aiida import engine, orm
 from aiida.common import datastructures, folders
+from aiida.common import exceptions as aiidaxc
 from aiida.engine.processes import ports
 from aiida.parsers import parser
 
@@ -291,8 +292,14 @@ class IconParser(parser.Parser):
         remote_folder = self.node.outputs.remote_folder
         remote_path = pathlib.Path(remote_folder.get_remote_path())
 
-        files = remote_folder.listdir()
         result = RestartResult(status=RestartStatus.MISSING)
+        try:
+            _ = remote_folder.computer.get_authinfo(user=orm.User.collection.get_default())
+        except aiidaxc.NotExistent:
+            self.logger.info("Can not parse restart file names: not possible to authenticate to the computer")
+            return result
+
+        files = remote_folder.listdir()
         all_restarts_pattern = ""
         latest_restart_name = ""
         try:
