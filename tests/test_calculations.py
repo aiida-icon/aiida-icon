@@ -140,10 +140,12 @@ def test_models_not_required(icon_code, datapath, caplog):
     ibuilder.master_namelist = orm.SinglefileData(datapath / "common" / "abspath_models.nml")
     engine.run(ibuilder)
     assert re.search(
-        r"Warning: Model namelist for model 'foo' is not tracked for provenance.", caplog.record_tuples[0][2]
+        r"Warning: Model namelist for model 'foo' is not tracked for provenance.",
+        caplog.record_tuples[0][2],
     )
     assert re.search(
-        r"Warning: Model namelist for model 'bar' is not tracked for provenance.", caplog.record_tuples[1][2]
+        r"Warning: Model namelist for model 'bar' is not tracked for provenance.",
+        caplog.record_tuples[1][2],
     )
 
 
