@@ -61,7 +61,91 @@ The following is a summary of the [AiiDA Quick Install Guide](https://aiida.read
 
 ### Get Productive
 
-1. Now you are ready to either run bare-bones ICON jobs (checkout the `examples/` directory for inspiration), or to develop AiiDA workflows incorporating ICON jobs.
+Now you are ready to either run bare-bones ICON jobs (checkout the `examples/` directory for inspiration), or to develop AiiDA workflows incorporating ICON jobs.
+
+#### Run an ICON job from just a master namelist file
+
+Assume you have a job that looks as follows:
+
+```
+&master_nml
+  model_base_dir = /homes/myuser/models
+  ...
+/
+...
+&master_model_nml
+  model_name = "atm"
+  model_namelist_filename = "<path>/atm.namelist"
+  model_type = 1
+  ...
+/
+...
+```
+
+This has to be in a file local to where you are running AiiDA.
+And you have the appropriate files in the appropriate places on your remote machine.
+You also have a code set up on your hpc system (named "myhpc" in your DB) and you named it "myicon".
+
+You can submit the job with the following script:
+
+```python
+#!verdi run
+from aiida import orm
+from aiida_icon.calculations import IconCalculation
+
+code = orm.load_code("myicon@myhpc")
+builder = IconCalculation.get_builder()
+builder.code = code
+builder.master_namelist = orm.SinglefileData("/path/to/my/master.nml")
+builder.submit() # or .run() if you have not set up rabbitmq for your AiiDA profile
+```
+
+#### Run ICON job with provenance
+
+Using the same ICON job as above: you might want to consider tracking the model namelist files your run is using inside the AiiDA graph. This makes it convenient to later inspect or retrieve them, without opening up the master namelist file first.
+
+```python
+...
+
+builder.master_namelist = orm.SinglefileData("/path/to/my/master.nml")
+builder.models.atm = orm.RemoteData(code.computer, remote_path="/homes/myuser/models/atm.namelist")  # the 'remote_path' has to exactly match what the master namelist specifies
+```
+
+#### Run from all local namelist files
+
+This is somewhat the best case for usability: AiiDA will remember all the parameters for you, as it stores the contents of the namelist files at the point of submitting the run.
+
+Of course, this requires that your master namelist specifies to look for model namelists in the work directory of the job. AiiDA will not upload files to elsewhere. For example:
+
+```
+&master_nml
+  model_base_dir = models
+  ...
+/
+...
+&master_model_nml
+  model_name = "atm"
+  model_namelist_filename = "<path>/atm.namelist"
+  model_type = 1
+  ...
+/
+...
+```
+
+This will cause AiiDA-ICON to upload your local "atm.namelist" into the "models" sub directory of the work directory.
+
+```python
+#!verdi run
+from aiida import orm
+from aiida_icon.calculations import IconCalculation
+
+code = orm.load_code("myicon@myhpc")
+builder = IconCalculation.get_builder()
+builder.code = code
+builder.master_namelist = orm.SinglefileData("/path/to/my/master.nml")
+builder.models.atm = orm.SinglefileData("/path/to/my/atm.namelist")
+builder.submit() # or .run() if you have not set up rabbitmq for your AiiDA profile
+```
 
 ## Recipes for specific use cases
 
