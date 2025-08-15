@@ -37,7 +37,7 @@ class IconCalculation(engine.CalcJob):
             "setup_env",
             valid_type=orm.SinglefileData,
             required=False,
-            help="A file that is sourced before the execution of ICON but after the 'wrapper_script'.",
+            help="A file that is sourced before the execution of ICON and after environment variables passed through the 'metadata' input are set.",
         )
         spec.input(
             "dynamics_grid_file",
