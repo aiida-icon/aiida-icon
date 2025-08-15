@@ -41,7 +41,7 @@ def read_output_stream_infos(
 ) -> list[OutputStreamInfo]:
     """Read detailed output stream information from the model namelist."""
     data = namelists.namelists_data(model_nml)
-    output_data = data["output_nml"]
+    output_data = data.get("output_nml", [])
 
     # wrap in list if there is only one
     stream_spec_list: list[f90nml.namelist.Namelist] = (

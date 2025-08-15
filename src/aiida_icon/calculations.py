@@ -320,7 +320,6 @@ class IconParser(parser.Parser):
 
     def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
         """Create a meaningful key from a stream info object."""
-        # PRCOMMENT: Can output_filename be unset in an ICON namelist file (e.g., using some default)?
         if stream_info.output_filename:
             # Clean the output filename path for use as a key
             clean_path = pathlib.Path(stream_info.output_filename)
