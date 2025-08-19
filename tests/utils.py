@@ -45,7 +45,6 @@ def assert_output_streams(res, node, expected_streams_and_files: dict[str, list[
             if transport.isdir(stream_path):
                 all_items = transport.listdir(stream_path)
 
-                # PRCOMMENT: Can the streams have a nested directory tree structure, or are they always flat collections of files in a directory?
                 actual_files = []
                 for item in all_items:
                     item_path = pathlib.Path(stream_path) / item
@@ -55,7 +54,6 @@ def assert_output_streams(res, node, expected_streams_and_files: dict[str, list[
                 assert set(actual_files) == set(expected_files), (
                     f"Stream '{stream_name}' expected files {expected_files}, " f"got {actual_files} in {stream_path}"
                 )
-            # PRCOMMENT: Can streams also be files or are they always directories?
             else:
                 msg = f"Stream directory '{stream_path}' does not exist on remote computer"
                 raise AssertionError(msg)
