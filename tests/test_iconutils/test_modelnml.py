@@ -1,5 +1,8 @@
 import pathlib
+import tempfile
+import textwrap
 
+import aiida
 import f90nml
 
 from aiida_icon.iconutils import modelnml
@@ -21,7 +24,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             _ = f.write(namelist_content)
             f.flush()
 
@@ -43,7 +46,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -66,7 +69,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -88,7 +91,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -112,7 +115,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -142,7 +145,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -172,7 +175,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -196,7 +199,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -220,7 +223,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -252,7 +255,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -279,15 +282,17 @@ class TestReadOutputStreamInfos:
 
     def test_with_f90nml_namelist_object(self):
         """Test parsing when input is already a parsed f90nml namelist object."""
-        namelist_data = f90nml.Namelist({
-            'output_nml': [
-                {
-                    'output_filename': './direct_nml_test/',
-                    'filename_format': '<output_filename>_<datetime2>',
-                    'filetype': 5
-                }
-            ]
-        })
+        namelist_data = f90nml.Namelist(
+            {
+                "output_nml": [
+                    {
+                        "output_filename": "./direct_nml_test/",
+                        "filename_format": "<output_filename>_<datetime2>",
+                        "filetype": 5,
+                    }
+                ]
+            }
+        )
 
         result = modelnml.read_output_stream_infos(namelist_data)
 
@@ -306,7 +311,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
