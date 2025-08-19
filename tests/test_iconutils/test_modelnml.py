@@ -18,13 +18,13 @@ class TestReadOutputStreamInfos:
             &grid_nml
              dynamics_grid_filename = "icon_grid_simple.nc"
             /
-            
+
             &radiation_nml
              ecrad_data_path = './ecrad_data'
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             _ = f.write(namelist_content)
             f.flush()
 
@@ -41,12 +41,12 @@ class TestReadOutputStreamInfos:
             &grid_nml
              dynamics_grid_filename = "icon_grid_simple.nc"
             /
-            
+
             &output_nml
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -70,7 +70,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -94,7 +94,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -118,7 +118,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -140,7 +140,7 @@ class TestReadOutputStreamInfos:
              filename_format = "<output_filename>_<datetime2>"
              filetype = 5
             /
-            
+
             &output_nml
              output_filename = './stream2_output/'
              filename_format = "<output_filename>_<datetime2>"
@@ -148,7 +148,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -178,7 +178,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -202,7 +202,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -226,7 +226,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -247,18 +247,18 @@ class TestReadOutputStreamInfos:
              filename_format = "<output_filename>_<datetime2>"
              filetype = 5
             /
-            
+
             &output_nml
              filetype = 5
             /
-            
+
             &output_nml
              output_filename = './another_stream/'
              filetype = 5
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
@@ -285,15 +285,17 @@ class TestReadOutputStreamInfos:
 
     def test_with_f90nml_namelist_object(self):
         """Test parsing when input is already a parsed f90nml namelist object."""
-        namelist_data = f90nml.Namelist({
-            'output_nml': [
-                {
-                    'output_filename': './direct_nml_test/',
-                    'filename_format': '<output_filename>_<datetime2>',
-                    'filetype': 5
-                }
-            ]
-        })
+        namelist_data = f90nml.Namelist(
+            {
+                "output_nml": [
+                    {
+                        "output_filename": "./direct_nml_test/",
+                        "filename_format": "<output_filename>_<datetime2>",
+                        "filetype": 5,
+                    }
+                ]
+            }
+        )
 
         result = modelnml.read_output_stream_infos(namelist_data)
 
@@ -312,7 +314,7 @@ class TestReadOutputStreamInfos:
             /
         """)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.nml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml", delete=False) as f:
             f.write(namelist_content)
             f.flush()
 
