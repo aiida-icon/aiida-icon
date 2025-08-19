@@ -320,12 +320,20 @@ class IconParser(parser.Parser):
 
     def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
         """Create a meaningful key from a stream info object."""
+        from aiida.common.links import validate_link_label
+
         if stream_info.output_filename:
-            # Clean the output filename path for use as a key
+            # Clean the output filename path for use as a link_label
             clean_path = pathlib.Path(stream_info.output_filename)
             clean_name = str(clean_path).lstrip("./").rstrip("/")
-            # PRCOMMENT: Can the `output_filename`s contain slashes, and if so, do we need to replace them?
             stream_key = clean_name.replace("/", "__")
+            try:
+                validate_link_label(stream_key)
+            except ValueError:
+                msg = f"The stream_key {stream_key} derived from `output_filename` is not a valid AiiDA `link_label`. Numerical key `stream_i` will be used instead."
+                self.logger.warning(msg)
+                stream_key = f"stream_{stream_info.stream_index:02d}"
+
         else:
             stream_key = f"stream_{stream_info.stream_index:02d}"
 
