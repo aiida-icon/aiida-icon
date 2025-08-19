@@ -49,7 +49,6 @@ class IconCalculation(engine.CalcJob):
         spec.output_namespace(
             "output_streams",
             dynamic=True,
-            non_db=True,
             required=False,
             valid_type=orm.RemoteData,
             help="Output streams of the ICON calculation",
