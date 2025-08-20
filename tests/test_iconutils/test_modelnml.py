@@ -8,128 +8,98 @@ import pytest
 
 from aiida_icon.iconutils import modelnml
 
-
-class TestReadOutputStreamInfos:
-    """Test the parsing of output stream information from model namelists."""
-
-    def test_missing_output_nml_section(self):
-        """Test handling when output_nml section is completely missing."""
-        namelist_content = textwrap.dedent("""
-            &grid_nml
-             dynamics_grid_filename = "icon_grid_simple.nc"
-            /
-        """)
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml") as f:
-            f.write(namelist_content)
-            f.flush()
-            model_nml = aiida.orm.SinglefileData(f.name)
-
-        result = modelnml.read_output_stream_infos(model_nml)
-        assert result == []
-
-    @pytest.mark.parametrize(
-        ("namelist_content", "expected_count", "expected_paths"),
-        [
-            # Empty section
-            (
-                """
-            &output_nml
-            /
+OUTPUT_STREAM_CASES = [
+    ("", 0, []),  # missing output_nml block
+    ("&output_nml\n/", 1, [pathlib.Path(".")]),  # empty section
+    (  # single stream with explicit path
+        """
+        &output_nml
+          output_filename = './test_output/'
+          filename_format = "<output_filename>_<datetime2>"
+        /
         """,
-                1,
-                [pathlib.Path(".")],
-            ),
-            # Single stream with explicit path
-            (
-                """
-            &output_nml
-             output_filename = './test_output/'
-             filename_format = "<output_filename>_<datetime2>"
-            /
+        1,
+        [pathlib.Path("./test_output")],
+    ),
+    (  # multiple streams
+        """
+        &output_nml
+         output_filename = './test_output/'
+         filename_format = "<output_filename>_<datetime2>"
+        /
         """,
-                1,
-                [pathlib.Path("./test_output")],
-            ),
-            # Multiple streams
-            (
-                """
-            &output_nml
-             output_filename = './stream1/'
-            /
-            &output_nml
-             output_filename = './stream2/'
-            /
+        1,
+        [pathlib.Path("./test_output")],
+    ),
+    (  # mixed configurations (some with paths, some without)
+        """
+        &output_nml
+         output_filename = './explicit_path/'
+        /
+        &output_nml
+         filetype = 5
+        /
         """,
-                2,
-                [pathlib.Path("./stream1"), pathlib.Path("./stream2")],
-            ),
-            # Mixed configurations (some with paths, some without)
-            (
-                """
-            &output_nml
-             output_filename = './explicit_path/'
-            /
-            &output_nml
-             filetype = 5
-            /
-        """,
-                2,
-                [pathlib.Path("./explicit_path"), pathlib.Path(".")],
-            ),
-        ],
+        2,
+        [pathlib.Path("./explicit_path"), pathlib.Path(".")],
+    ),
+]
+
+
+@pytest.mark.parametrize(("namelist_content", "expected_count", "expected_paths"), OUTPUT_STREAM_CASES)
+def test_read_output_stream_infos(namelist_content, expected_count, expected_paths):
+    """Test various namelist configurations and their parsed results."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".nml") as f:
+        f.write(textwrap.dedent(namelist_content))
+        f.flush()
+        model_nml = aiida.orm.SinglefileData(f.name)
+
+    result = modelnml.read_output_stream_infos(model_nml)
+
+    assert len(result) == expected_count
+    for i, expected_path in enumerate(expected_paths):
+        assert result[i].path == expected_path
+        assert result[i].stream_index == i
+
+
+def test_read_output_stream_infos_default_format(tmp_path):
+    """Test that default filename_format is applied when missing."""
+    namelist_content = textwrap.dedent(
+        """
+        &output_nml
+         output_filename = './test/'
+         filetype = 5
+        /
+        """
     )
-    def test_output_stream_parsing(self, namelist_content, expected_count, expected_paths):
-        """Test various namelist configurations and their parsed results."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml") as f:
-            f.write(textwrap.dedent(namelist_content))
-            f.flush()
-            model_nml = aiida.orm.SinglefileData(f.name)
+    namelist_file = tmp_path / "default_oustream_format.nml"
+    namelist_file.write_text(namelist_content)
+    model_nml = aiida.orm.SinglefileData(str(namelist_file))
 
-        result = modelnml.read_output_stream_infos(model_nml)
+    result = modelnml.read_output_stream_infos(model_nml)
 
-        assert len(result) == expected_count
-        for i, expected_path in enumerate(expected_paths):
-            assert result[i].path == expected_path
-            assert result[i].stream_index == i
+    assert len(result) == 1
+    assert result[0].filename_format == "<output_filename>_XXX_YYY"
+    assert result[0].output_filename == "./test/"
 
-    def test_default_filename_format_applied(self):
-        """Test that default filename_format is applied when missing."""
-        namelist_content = textwrap.dedent("""
-            &output_nml
-             output_filename = './test/'
-             filetype = 5
-            /
-        """)
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".nml") as f:
-            f.write(namelist_content)
-            f.flush()
-            model_nml = aiida.orm.SinglefileData(f.name)
+def test_read_output_stream_infos_namelist_obj_input():
+    """Test parsing when input is already a parsed f90nml namelist object."""
+    namelist_data = f90nml.Namelist(
+        {
+            "output_nml": [
+                {
+                    "output_filename": "./direct_test/",
+                    "filename_format": "<output_filename>_<datetime2>",
+                }
+            ]
+        }
+    )
 
-        result = modelnml.read_output_stream_infos(model_nml)
+    result = modelnml.read_output_stream_infos(namelist_data)
 
-        assert len(result) == 1
-        assert result[0].filename_format == "<output_filename>_XXX_YYY"
-        assert result[0].output_filename == "./test/"
-
-    def test_with_f90nml_namelist_object(self):
-        """Test parsing when input is already a parsed f90nml namelist object."""
-        namelist_data = f90nml.Namelist(
-            {
-                "output_nml": [
-                    {
-                        "output_filename": "./direct_test/",
-                        "filename_format": "<output_filename>_<datetime2>",
-                    }
-                ]
-            }
-        )
-
-        result = modelnml.read_output_stream_infos(namelist_data)
-
-        assert len(result) == 1
-        assert result[0].path == pathlib.Path("./direct_test")
+    assert len(result) == 1
+    assert result[0].path == pathlib.Path("./direct_test")
 
 
 @pytest.mark.parametrize(

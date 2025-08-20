@@ -343,7 +343,10 @@ class IconParser(parser.Parser):
             try:
                 validate_link_label(stream_key)
             except ValueError:
-                msg = f"The stream_key {stream_key} derived from `output_filename` is not a valid AiiDA `link_label`. Numerical key `stream_i` will be used instead."
+                msg = (
+                    f"The stream_key {stream_key} derived from `output_filename` is not a valid AiiDA `link_label`. "
+                    "Numerical key `stream_i` will be used instead."
+                )
                 self.logger.warning(msg)
                 stream_key = f"stream_{stream_info.stream_index:02d}"
 
