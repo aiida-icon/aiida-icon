@@ -142,9 +142,8 @@ class TestReadOutputStreamInfos:
         ("./", 0, "stream_00", "root_directory"),
     ],
 )
-def test_create_stream_key(icon_parser, output_filename, stream_index, expected_key, test_id):
+def test_create_stream_key(icon_parser, output_filename, stream_index, expected_key):
     """Test stream key creation from various output_filename patterns."""
-    # Derive path from output_filename (mimicking the real logic)
     path = pathlib.Path(output_filename.rstrip("/")) if output_filename else pathlib.Path(".")
 
     stream_info = modelnml.OutputStreamInfo(
