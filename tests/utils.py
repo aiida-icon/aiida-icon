@@ -14,7 +14,7 @@ def assert_output_streams(res, node, expected_streams_and_files: dict[str, list[
     """
 
     output_streams = res.get("output_streams", None)
-    # TODO: See how to handle that case properly
+
     if not output_streams:
         return
 
