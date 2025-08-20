@@ -6,6 +6,7 @@ import pytest
 from aiida_icon import calculations
 from aiida_icon.calculations import IconCalculation
 from aiida_icon.iconutils.masternml import modify_master_nml
+from tests.utils import assert_output_streams
 
 
 @pytest.mark.requires_icon
@@ -24,6 +25,11 @@ def test_simple_icon_run(simple_icon_run_builder: aiida.engine.ProcessBuilder):
     assert (
         result["finish_status"].value == "RESTART"
     ), f"Finish status is not RESTART. Please check calculation folder in '{remote_path}'."
+
+    # Test output streams
+    expected_streams_and_files: dict[str, list[str]] = {"simple_icon_run_atm_2d": [], "simple_icon_run_atm_3d_pl": []}
+
+    assert_output_streams(result, node, expected_streams_and_files)
 
     parser = calculations.IconParser(typing.cast(aiida.orm.CalcJobNode, node))
     exit_code = parser.parse()

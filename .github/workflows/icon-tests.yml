@@ -75,3 +75,4 @@ jobs:
       run: |
         spack env activate .
         hatch test -py ${{matrix.python-version}} -n auto -v -m requires_icon tests
+

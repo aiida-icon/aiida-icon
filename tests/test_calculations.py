@@ -7,6 +7,7 @@ from aiida.common import exceptions as aiidaxc
 from aiida.common import folders
 
 from aiida_icon import builder, calculations, tools
+from aiida_icon.iconutils import modelnml
 
 
 def test_prepare_for_calc(mock_icon_calc, tmp_path):
@@ -67,6 +68,23 @@ def test_wrapper_script_autouse(icon_calc_with_wrapper, tmp_path):
     assert re.search(r"chmod 755 run_icon.sh", submit_content, re.MULTILINE)
     assert re.search(r"(('mpirun')|('srun')) .* './run_icon.sh'", submit_content, re.MULTILINE)
     assert "run_icon.sh" in [triplet[2] for triplet in calcinfo.local_copy_list]
+
+
+def test_setup_env_autouse(icon_builder, datapath, add_input_files, tmp_path):
+    inputs_path = datapath / "simple_icon_run" / "inputs"
+
+    add_input_files(inputs_path, icon_builder)
+    icon_builder.setup_env = orm.SinglefileData(datapath / "common" / "setup_env.sh")
+
+    prepare_path = tmp_path / "test_auto_setupenv"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+    calcinfo = calculations.IconCalculation(dict(icon_builder)).presubmit(sandbox_folder)
+
+    submit_content = (pathlib.Path(sandbox_folder.get_abs_path(".")) / "_aiidasubmit.sh").read_text()
+
+    assert calcinfo.prepend_text == "source ./setup_env.sh"
+    assert re.search(r"source ./setup_env.sh", submit_content, re.MULTILINE)
 
 
 def test_uenv_autouse(icon_code, datapath, add_input_files, tmp_path):
@@ -156,3 +174,28 @@ def test_models_required(icon_code, datapath):
     ibuilder.master_namelist = orm.SinglefileData(datapath / "common" / "relpath_models.nml")
     with pytest.raises(aiidaxc.InputValidationError, match=r"Missing input for model 'foo'"):
         engine.run(ibuilder)
+
+
+@pytest.mark.parametrize(
+    ("output_filename", "stream_index", "expected_key", "test_id"),
+    [
+        ("./test_output/", 0, "test_output", "simple_path"),
+        ("./nested/deep/output/", 1, "nested__deep__output", "nested_path"),
+        ("", 5, "stream_05", "fallback_to_index"),
+        ("./invalid-chars!@#/", 3, "stream_03", "invalid_chars_fallback"),
+        ("./", 0, "stream_00", "root_directory"),
+    ],
+)
+def test_parser_create_stream_key(icon_parser, output_filename, stream_index, expected_key, test_id):
+    """Test stream key creation from various output_filename patterns."""
+    path = pathlib.Path(output_filename.rstrip("/")) if output_filename else pathlib.Path(".")
+
+    stream_info = modelnml.OutputStreamInfo(
+        path=path,
+        output_filename=output_filename,
+        filename_format="<output_filename>_<datetime2>",
+        stream_index=stream_index,
+    )
+
+    result = icon_parser._create_stream_key(stream_info)  # noqa: SLF001  # testing private member
+    assert result == expected_key

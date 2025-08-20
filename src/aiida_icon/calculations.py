@@ -11,6 +11,7 @@ import f90nml
 from aiida import engine, orm
 from aiida.common import datastructures, folders
 from aiida.common import exceptions as aiidaxc
+from aiida.common.links import validate_link_label
 from aiida.engine.processes import ports
 from aiida.parsers import parser
 
@@ -20,6 +21,8 @@ from aiida_icon.iconutils import masternml, modelnml
 if typing.TYPE_CHECKING:
     from aiida.engine.processes import builder as process_builder
     from aiida.engine.processes.calcjobs import calcjob
+
+    from aiida_icon.iconutils.modelnml import OutputStreamInfo
 
 
 class IconCalculation(engine.CalcJob):
@@ -38,6 +41,12 @@ class IconCalculation(engine.CalcJob):
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
+        spec.input(
+            "setup_env",
+            valid_type=orm.SinglefileData,
+            required=False,
+            help="A file that is sourced before the execution of ICON and after environment variables passed through the 'metadata' input are set.",
+        )
         spec.input("dynamics_grid_file", valid_type=orm.RemoteData, required=False)
         spec.input("ecrad_data", valid_type=orm.RemoteData, required=False)
         spec.input("cloud_opt_props", valid_type=orm.RemoteData, required=False)
@@ -46,6 +55,13 @@ class IconCalculation(engine.CalcJob):
         spec.input("rrtmg_lw", valid_type=orm.RemoteData, required=False)
         spec.output("latest_restart_file")
         spec.output_namespace("all_restart_files", dynamic=True)
+        spec.output_namespace(
+            "output_streams",
+            dynamic=True,
+            required=False,
+            valid_type=orm.RemoteData,
+            help="Output streams of the ICON calculation",
+        )
         spec.output("finish_status")
         options = spec.inputs["metadata"]["options"]  # type: ignore[index] # guaranteed correct by aiida-core
         options["resources"].default = {  # type: ignore[index] # guaranteed correct by aiida-core
@@ -93,8 +109,8 @@ class IconCalculation(engine.CalcJob):
         model_namelist_data = calcutils.collect_model_nml(self.inputs)
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content(mode="r"))
 
-        for output_folder in modelnml.read_output_stream_paths(model_namelist_data):
-            folder.get_subfolder(output_folder, create=True)
+        for stream_info in modelnml.read_output_stream_infos(model_namelist_data):
+            folder.get_subfolder(stream_info.path, create=True)
 
         codeinfo = datastructures.CodeInfo()
         codeinfo.code_uuid = self.inputs.code.uuid
@@ -188,6 +204,16 @@ class IconCalculation(engine.CalcJob):
                 )
             )
 
+        if "setup_env" in self.inputs:
+            calcinfo.local_copy_list.append(
+                (
+                    self.inputs.setup_env.uuid,
+                    self.inputs.setup_env.filename,
+                    "setup_env.sh",
+                )
+            )
+            calcinfo.prepend_text = "\n".join([*calcinfo.get("prepend_text", "").splitlines(), "source ./setup_env.sh"])
+
         for model, nmlpath in masternml.iter_model_name_filepath(master_namelist_data):
             actions = calcutils.make_model_actions(
                 model, nmlpath, self.inputs.get("models", ports.PortNamespace()), self
@@ -196,7 +222,6 @@ class IconCalculation(engine.CalcJob):
                 folder.get_subfolder(path, create=True)
             calcinfo.local_copy_list += actions.local_copy_list
             calcinfo.remote_copy_list += actions.remote_copy_list
-
         calcinfo.retrieve_list = [
             "finish.status",
             "nml.atmo.log",
@@ -248,6 +273,14 @@ class IconParser(parser.Parser):
             self.out("all_restart_files", restarts.all_restarts)
         if restarts.latest_restart:
             self.out("latest_restart_file", restarts.latest_restart)
+
+        # Parse output streams
+        try:
+            output_streams = self.parse_output_streams()
+            if output_streams:
+                self.out("output_streams", output_streams)
+        except OSError:
+            return self.exit_codes.PARTIALLY_PARSED
 
         match finish_status.status:
             case FinishStatus.OK:
@@ -329,3 +362,48 @@ class IconParser(parser.Parser):
             self.logger.info("Could not find a valid set of restart files.")
 
         return result
+
+    def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
+        """Create a meaningful key from a stream info object."""
+
+        if stream_info.output_filename:
+            # Clean the output filename path for use as a link_label
+            clean_path = pathlib.Path(stream_info.output_filename)
+            clean_name = str(clean_path).lstrip("./").rstrip("/")
+            stream_key = clean_name.replace("/", "__")
+            try:
+                validate_link_label(stream_key)
+            except ValueError:
+                msg = (
+                    f"The stream_key {stream_key} derived from `output_filename` is not a valid AiiDA `link_label`. "
+                    "Numerical key `stream_i` will be used instead."
+                )
+                self.logger.warning(msg)
+                stream_key = f"stream_{stream_info.stream_index:02d}"
+
+        else:
+            stream_key = f"stream_{stream_info.stream_index:02d}"
+
+        return stream_key
+
+    def parse_output_streams(self) -> dict[str, orm.RemoteData]:
+        """Parse output streams from the model namelist and create RemoteData nodes."""
+        output_streams = {}
+
+        # Get the remote folder where outputs are stored
+        remote_folder = typing.cast(orm.RemoteData, self.node.outputs.remote_folder)
+        remote_base_path = pathlib.Path(remote_folder.get_remote_path())
+
+        # Create RemoteData nodes for each output directory
+        for stream_info in modelnml.read_output_stream_infos(self.node.inputs.model_namelist):
+            stream_key = self._create_stream_key(stream_info)
+            full_output_path = remote_base_path / stream_info.path
+
+            output_streams[stream_key] = orm.RemoteData(
+                computer=self.node.computer,
+                remote_path=str(full_output_path),
+            )
+
+            self.logger.info("Registered output stream '%s' -> %s", stream_key, full_output_path)
+
+        return output_streams

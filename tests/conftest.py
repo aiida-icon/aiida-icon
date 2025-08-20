@@ -206,3 +206,14 @@ def icon_calc_with_wrapper(datapath, icon_builder):
     inputs_path = datapath.absolute() / "wrapper_script" / "inputs"
     _add_input_files(inputs_path, icon_builder)
     return IconCalculation(dict(icon_builder))
+
+
+@pytest.fixture
+def icon_parser(aiida_computer_local):
+    """Create a minimal parser instance for unit testing."""
+    from aiida_icon.calculations import IconParser
+
+    computer = aiida_computer_local()
+    calc_node = aiida.orm.CalcJobNode(computer=computer)
+
+    return IconParser(calc_node)
