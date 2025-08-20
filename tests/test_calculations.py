@@ -6,6 +6,7 @@ from aiida import orm
 from aiida.common import folders
 
 from aiida_icon import calculations, tools
+from aiida_icon.iconutils import modelnml
 
 
 def test_prepare_for_calc(mock_icon_calc, tmp_path):
@@ -99,3 +100,28 @@ def test_uenv_autouse(icon_code, datapath, add_input_files, tmp_path):
 
     submit_content = (pathlib.Path(sandbox_folder.get_abs_path(".")) / "_aiidasubmit.sh").read_text()
     assert re.search(r"#SBATCH --uenv=foo --view=bar", submit_content, re.MULTILINE)
+
+
+@pytest.mark.parametrize(
+    ("output_filename", "stream_index", "expected_key", "test_id"),
+    [
+        ("./test_output/", 0, "test_output", "simple_path"),
+        ("./nested/deep/output/", 1, "nested__deep__output", "nested_path"),
+        ("", 5, "stream_05", "fallback_to_index"),
+        ("./invalid-chars!@#/", 3, "stream_03", "invalid_chars_fallback"),
+        ("./", 0, "stream_00", "root_directory"),
+    ],
+)
+def test_parser_create_stream_key(icon_parser, output_filename, stream_index, expected_key, test_id):
+    """Test stream key creation from various output_filename patterns."""
+    path = pathlib.Path(output_filename.rstrip("/")) if output_filename else pathlib.Path(".")
+
+    stream_info = modelnml.OutputStreamInfo(
+        path=path,
+        output_filename=output_filename,
+        filename_format="<output_filename>_<datetime2>",
+        stream_index=stream_index,
+    )
+
+    result = icon_parser._create_stream_key(stream_info)  # noqa: SLF001  # testing private member
+    assert result == expected_key
