@@ -154,5 +154,5 @@ def test_create_stream_key(icon_parser, output_filename, stream_index, expected_
         stream_index=stream_index,
     )
 
-    result = icon_parser.create_stream_key(stream_info)
+    result = icon_parser._create_stream_key(stream_info)  # noqa: SLF001
     assert result == expected_key
