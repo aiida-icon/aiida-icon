@@ -187,6 +187,7 @@ class IconCalculation(engine.CalcJob):
         ]
 
         if "model_namelist" in self.inputs:
+            self.logger.warning("The 'model_namelist' input is deprecated, use 'models.<model-name>' instead!")
             calcinfo.local_copy_list.append(
                 (
                     self.inputs.model_namelist.uuid,
@@ -343,6 +344,8 @@ class IconParser(parser.Parser):
             self.logger.info("Can not parse restart file names, singlefile mode is not supported.")
             if restart_indicated:
                 result.status = RestartStatus.ERROR
+        except exceptions.RemoteModelNamelistInaccessibleError:
+            self.logger.warning("Could not parse restart file names from remote model namelists.")
 
         for file_name in files:
             if restart_match := re.match(all_restarts_pattern, file_name):

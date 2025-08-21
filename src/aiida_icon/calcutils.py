@@ -9,6 +9,9 @@ import f90nml
 from aiida import orm
 from aiida.common import exceptions as aiidaxc
 from aiida.common import log as aiidalog
+from aiida.transports import transport
+
+from aiida_icon import exceptions
 
 KeyT_contra = typing.TypeVar("KeyT_contra", contravariant=True)
 ValT = typing.TypeVar("ValT")
@@ -38,9 +41,12 @@ def collect_model_nml(namespace: ReadMapProtocol, *, download: bool = False) -> 
             case orm.SinglefileData():
                 result = f90nml.reads("\n".join([str(result), nml.get_content(mode="r")]))
             case orm.RemoteData() if download and nml.computer:
-                with tempfile.NamedTemporaryFile() as tf:
-                    result = nml.computer.get_transport().getfile(nml.get_remote_path(), tf.name)
-                    result = f90nml.reads("\n".join([str(result), pathlib.Path(tf.name).read_text()]))
+                try:
+                    with tempfile.NamedTemporaryFile() as tf:
+                        result = nml.computer.get_transport().getfile(nml.get_remote_path(), tf.name)
+                        result = f90nml.reads("\n".join([str(result), pathlib.Path(tf.name).read_text()]))
+                except (aiidaxc.TransportTaskException, transport.TransportInternalError) as err:
+                    raise exceptions.RemoteModelNamelistInaccessibleError from err
             case orm.RemoteData():
                 pass  # no way to be helpful here
             case _:
