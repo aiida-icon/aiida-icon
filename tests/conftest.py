@@ -4,12 +4,12 @@ import dataclasses
 import functools
 import pathlib
 import typing
-from typing import Self
 
 import aiida
 import aiida.common
 import aiida.orm
 import pytest
+from typing_extensions import Self
 
 if typing.TYPE_CHECKING:
     from aiida.engine.processes import builder as aiida_builder
