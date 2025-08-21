@@ -76,5 +76,8 @@ def common_alps_setup(icon_builder: processes.ProcessBuilder, *, uenv: tools.Uen
         icon_builder.set_uenv(uenv.name, view=uenv.view, overwrite=False)
     else:
         options.custom_scheduler_commands = "\n".join(
-            [*options.custom_scheduler_commands.splitlines(), f"#SBATCH --uenv={uenv.name} --view={uenv.view}"]
+            [
+                *options.custom_scheduler_commands.splitlines(),
+                f"#SBATCH --uenv={uenv.name} --view={uenv.view}",
+            ]
         )

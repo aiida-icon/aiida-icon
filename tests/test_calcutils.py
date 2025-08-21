@@ -34,7 +34,9 @@ def test_make_remote_path_triplet_with_lookup(aiida_computer_local):
     comp = aiida_computer_local()
     some_file = orm.RemoteData(computer=comp, remote_path="/some/file")
     testee = calcutils.make_remote_path_triplet(
-        some_file, lookup_path="foo.bar", nml_data=f90nml.Namelist({"foo": {"bar": "   newname"}})
+        some_file,
+        lookup_path="foo.bar",
+        nml_data=f90nml.Namelist({"foo": {"bar": "   newname"}}),
     )
     assert testee[2] == "newname"
 
@@ -76,7 +78,10 @@ def test_make_model_actions_remote_fail(caplog, aiida_computer_local):
     assert testee.local_copy_list == []
     assert testee.remote_copy_list == []
     assert testee.create_dirs == []
-    assert re.search(r"Warning: .* /other/foo.nml .* does not match .* \(/models/foo.nml\)", caplog.record_tuples[0][2])
+    assert re.search(
+        r"Warning: .* /other/foo.nml .* does not match .* \(/models/foo.nml\)",
+        caplog.record_tuples[0][2],
+    )
 
 
 def test_make_model_actions_local_fail(caplog, datapath):
@@ -100,4 +105,7 @@ def test_make_model_actions_remote_noinput(caplog, datapath):
     assert testee.local_copy_list == []
     assert testee.remote_copy_list == []
     assert testee.create_dirs == []
-    assert re.search(r"Warning: Model namelist .* not tracked for provenance", caplog.record_tuples[0][2])
+    assert re.search(
+        r"Warning: Model namelist .* not tracked for provenance",
+        caplog.record_tuples[0][2],
+    )

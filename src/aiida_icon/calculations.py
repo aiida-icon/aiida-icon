@@ -395,7 +395,8 @@ class IconParser(parser.Parser):
         remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
         # Create RemoteData nodes for each output directory
-        for stream_info in modelnml.read_output_stream_infos(self.node.inputs.model_namelist):
+        modelnml_data = calcutils.collect_model_nml(self.node.get_builder_restart())
+        for stream_info in modelnml.read_output_stream_infos(modelnml_data):
             stream_key = self._create_stream_key(stream_info)
             full_output_path = remote_base_path / stream_info.path
 

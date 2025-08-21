@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import dataclasses
 import functools
 import pathlib
+import typing
+from typing import Self
 
 import aiida
 import aiida.common
 import aiida.orm
 import pytest
-from aiida.engine.processes import builder as aiida_builder
+
+if typing.TYPE_CHECKING:
+    from aiida.engine.processes import builder as aiida_builder
 
 from aiida_icon.calculations import IconCalculation
 
@@ -77,16 +83,27 @@ def parser_case(case_name, datapath: pathlib.Path):
 @dataclasses.dataclass
 class BuildInputs:
     fake_icon: aiida.orm.CalcJobNode
+    namespace: str = ""
 
     def __setattr__(self, name: str, value: aiida.orm.Data) -> None:
-        if name == "fake_icon":
+        if name in (f.name for f in dataclasses.fields(self.__class__)):
             super().__setattr__(name, value)
         else:
             self.fake_icon.base.links.add_incoming(
                 source=value,
                 link_type=aiida.common.LinkType.INPUT_CALC,
-                link_label=name,
+                link_label=self._link_label(name),
             )
+
+    def _link_label(self, name: str) -> str:
+        if self.namespace:
+            return f"{self.namespace}__{name}"
+        return name
+
+    def __getattr__(self: Self, name: str) -> typing.Any:
+        if name in (f.name for f in dataclasses.fields(self.__class__)):
+            getattr(self, name)
+        return BuildInputs(fake_icon=self.fake_icon, namespace=self._link_label(name))
 
 
 @dataclasses.dataclass
@@ -131,7 +148,7 @@ def icon_result(parser_case, aiida_computer_local):
     make_remote = functools.partial(aiida.orm.RemoteData, computer=computer)
     builder = FakeIconBuilder(computer=computer)
     builder.inputs.master_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "icon_master.namelist")
-    builder.inputs.model_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "model.namelist")
+    builder.inputs.models.atm = aiida.orm.SinglefileData(datapath / "inputs" / "model.namelist")
     builder.inputs.dynamics_grid_file = make_remote(
         remote_path=str(datapath.absolute() / "inputs" / "icon_grid_simple.nc")
     )
