@@ -1,23 +1,51 @@
 import pathlib
 import re
+import textwrap
 
 import f90nml
+import pytest
 from aiida import orm
 
 from aiida_icon import calcutils
 
 
-def test_collect_model_nml_modern(datapath):
-    foo = orm.SinglefileData(str(datapath / "common" / "model_foo.nml"))
-    bar = orm.SinglefileData(str(datapath / "common" / "model_bar.nml"))
+@pytest.fixture
+def model_bar():
+    return orm.SinglefileData.from_string(
+        textwrap.dedent(
+            """
+        &bar
+         b=1
+        /
+        """
+        )
+    )
+
+
+@pytest.fixture
+def model_foo():
+    return orm.SinglefileData.from_string(
+        textwrap.dedent(
+            """
+        &foo
+         a=1
+        /
+        """
+        )
+    )
+
+
+def test_collect_model_nml_modern(model_foo, model_bar):
+    foo = model_foo
+    bar = model_bar
     testee = calcutils.collect_model_nml({"models": {"foo": foo, "bar": bar}}, download=True)
     assert testee["foo"]["a"] == 1
     assert testee["bar"]["b"] == 1
 
 
-def test_collect_model_nml_old(datapath):
-    foo = orm.SinglefileData(str(datapath / "common" / "model_foo.nml"))
-    bar = orm.SinglefileData(str(datapath / "common" / "model_bar.nml"))
+def test_collect_model_nml_old(model_foo, model_bar):
+    foo = model_foo
+    bar = model_bar
     testee = calcutils.collect_model_nml({"model_namelist": foo, "models": {"bar": bar}}, download=True)
     assert testee["foo"]["a"] == 1
     assert testee["bar"]["b"] == 1
@@ -84,11 +112,11 @@ def test_make_model_actions_remote_fail(caplog, aiida_computer_local):
     )
 
 
-def test_make_model_actions_local_fail(caplog, datapath):
+def test_make_model_actions_local_fail(caplog, model_foo):
     testee = calcutils.make_model_actions(
         model_name="foo",
         model_path=pathlib.Path("/models/foo.nml"),
-        models_ns={"foo": orm.SinglefileData(str(datapath / "common" / "model_foo.nml"))},
+        models_ns={"foo": model_foo},
     )
     assert testee.local_copy_list == []
     assert testee.remote_copy_list == []
