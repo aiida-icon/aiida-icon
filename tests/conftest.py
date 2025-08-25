@@ -102,7 +102,7 @@ class BuildInputs:
 
     def __getattr__(self: Self, name: str) -> typing.Any:
         if name in (f.name for f in dataclasses.fields(self.__class__)):
-            getattr(self, name)
+            return getattr(self, name)
         return BuildInputs(fake_icon=self.fake_icon, namespace=self._link_label(name))
 
 
