@@ -41,6 +41,7 @@ class IconCalculation(engine.CalcJob):
         # deprecated, use "models" namespace instead. Kept around for validity of existing nodes
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         # deprecated, use "model-inputs" namespace instead. Kept around for validity of existing nodes
+        spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
         spec.input(
