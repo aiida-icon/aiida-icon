@@ -27,7 +27,7 @@ if __name__ == "__main__":
     builder.master_namelist = aiida.orm.SinglefileData(
         file=thisdir / "icon_master.namelist"
     )
-    builder.model_namelist = aiida.orm.SinglefileData(
+    builder.models.atm = aiida.orm.SinglefileData(
         file=thisdir / "NAMELIST_exclaim_ape_R02B04"
     )
     builder.dynamics_grid_file = make_remote_data(

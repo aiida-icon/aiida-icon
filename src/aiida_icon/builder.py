@@ -36,7 +36,9 @@ def ensure_list(current_value: list[ItemT] | Callable[[], list[ItemT]]) -> list[
             raise TypeError
 
 
-def ensure_dict(current_value: dict[str, ItemT] | Callable[[], dict[str, ItemT]]) -> dict[str, ItemT]:
+def ensure_dict(
+    current_value: dict[str, ItemT] | Callable[[], dict[str, ItemT]],
+) -> dict[str, ItemT]:
     """
     Turn a dict factory into a dict but leave dicts untouched.
 
@@ -68,7 +70,9 @@ def prepare_builder_for_wrapper_script(
             f"chmod 755 {filename}",
         ]
     )
-    current_mpirun_extra_params = ensure_list(builder.metadata.options.mpirun_extra_params)  # type: ignore[attr-defined]
+    current_mpirun_extra_params = ensure_list(
+        builder.metadata.options.mpirun_extra_params  # type: ignore[attr-defined]
+    )
     builder.metadata.options.mpirun_extra_params = [  # type: ignore[attr-defined]
         *current_mpirun_extra_params,
         f"./{filename}",
@@ -141,7 +145,9 @@ class IconCalculationBuilder(process_builder.ProcessBuilder):
         """
         if getattr(self, "__is_uenv_set", False) and not overwrite:
             return
-        current_custom_scheduler_commands: str = self.metadata.options.custom_scheduler_commands  # type: ignore[attr-defined]
+        current_custom_scheduler_commands: str = (
+            self.metadata.options.custom_scheduler_commands  # type: ignore[attr-defined]
+        )
         lines = current_custom_scheduler_commands.splitlines()
         uenv_line = f"#SBATCH --uenv={uenv_name}"
         if view:

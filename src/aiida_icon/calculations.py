@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import functools
 import pathlib
 import re
 import typing
@@ -9,9 +10,12 @@ import typing
 import f90nml
 from aiida import engine, orm
 from aiida.common import datastructures, folders
+from aiida.common import exceptions as aiidaxc
+from aiida.common.links import validate_link_label
+from aiida.engine.processes import ports
 from aiida.parsers import parser
 
-from aiida_icon import builder, exceptions
+from aiida_icon import builder, calcutils, exceptions
 from aiida_icon.iconutils import masternml, modelnml
 
 if typing.TYPE_CHECKING:
@@ -32,7 +36,9 @@ class IconCalculation(engine.CalcJob):
     def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
-        spec.input("model_namelist", valid_type=orm.SinglefileData)
+        spec.input_namespace("models", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
+        # deprecated, use "models" namespace instead. Kept around for validity of existing nodes
+        spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
         spec.input(
@@ -41,12 +47,9 @@ class IconCalculation(engine.CalcJob):
             required=False,
             help="A file that is sourced before the execution of ICON and after environment variables passed through the 'metadata' input are set.",
         )
-        spec.input(
-            "dynamics_grid_file",
-            valid_type=orm.RemoteData,
-        )
+        spec.input("dynamics_grid_file", valid_type=orm.RemoteData, required=False)
         spec.input("ecrad_data", valid_type=orm.RemoteData, required=False)
-        spec.input("cloud_opt_props", valid_type=orm.RemoteData)
+        spec.input("cloud_opt_props", valid_type=orm.RemoteData, required=False)
         spec.input("dmin_wetgrowth_lookup", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_sw", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_lw", valid_type=orm.RemoteData, required=False)
@@ -103,8 +106,8 @@ class IconCalculation(engine.CalcJob):
         )
 
     def prepare_for_submission(self, folder: folders.Folder) -> datastructures.CalcInfo:
-        model_namelist_data = f90nml.reads(self.inputs.model_namelist.get_content())
-        master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content())
+        model_namelist_data = calcutils.collect_model_nml(self.inputs)
+        master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content(mode="r"))
 
         for stream_info in modelnml.read_output_stream_infos(model_namelist_data):
             folder.get_subfolder(stream_info.path, create=True)
@@ -114,19 +117,22 @@ class IconCalculation(engine.CalcJob):
 
         calcinfo = datastructures.CalcInfo()
         calcinfo.codes_info = [codeinfo]
-        calcinfo.remote_symlink_list = [
-            (
-                self.inputs.code.computer.uuid,
-                self.inputs.dynamics_grid_file.get_remote_path(),
-                model_namelist_data["grid_nml"]["dynamics_grid_filename"].strip(),
+        calcinfo.remote_symlink_list = []
+        make_remote_path_triplet_from_models = functools.partial(
+            calcutils.make_remote_path_triplet, nml_data=model_namelist_data
+        )
+        if "dynamics_grid_file" in self.inputs:
+            calcinfo.remote_symlink_list.append(
+                make_remote_path_triplet_from_models(
+                    self.inputs.dynamics_grid_file,
+                    lookup_path="grid_nml.dynamics_grid_filename",
+                )
             )
-        ]
         if "ecrad_data" in self.inputs:
             calcinfo.remote_symlink_list.append(
-                (
-                    self.inputs.code.computer.uuid,
-                    self.inputs.ecrad_data.get_remote_path(),
-                    model_namelist_data["radiation_nml"]["ecrad_data_path"].strip(),
+                make_remote_path_triplet_from_models(
+                    self.inputs.ecrad_data,
+                    lookup_path="radiation_nml.ecrad_data_path",
                 )
             )
         if "rrtmg_sw" in self.inputs:
@@ -153,13 +159,16 @@ class IconCalculation(engine.CalcJob):
                     modelnml.read_latest_restart_file_link_name(model_namelist_data),
                 )
             )
-        calcinfo.remote_copy_list = [
-            (
-                self.inputs.code.computer.uuid,
-                self.inputs.cloud_opt_props.get_remote_path(),
-                "ECHAM6_CldOptProps.nc",
+
+        calcinfo.remote_copy_list = []
+        if "cloud_opt_props" in self.inputs:
+            calcinfo.remote_copy_list.append(
+                (
+                    self.inputs.code.computer.uuid,
+                    self.inputs.cloud_opt_props.get_remote_path(),
+                    "ECHAM6_CldOptProps.nc",
+                )
             )
-        ]
         if "dmin_wetgrowth_lookup" in self.inputs:
             calcinfo.remote_copy_list.append(
                 (
@@ -175,12 +184,17 @@ class IconCalculation(engine.CalcJob):
                 self.inputs.master_namelist.filename,
                 "icon_master.namelist",
             ),
-            (
-                self.inputs.model_namelist.uuid,
-                self.inputs.model_namelist.filename,
-                master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
-            ),
         ]
+
+        if "model_namelist" in self.inputs:
+            self.logger.warning("The 'model_namelist' input is deprecated, use 'models.<model-name>' instead!")
+            calcinfo.local_copy_list.append(
+                (
+                    self.inputs.model_namelist.uuid,
+                    self.inputs.model_namelist.filename,
+                    master_namelist_data["master_model_nml"]["model_namelist_filename"].strip(),
+                )
+            )
 
         if "wrapper_script" in self.inputs:
             calcinfo.local_copy_list.append(
@@ -190,6 +204,7 @@ class IconCalculation(engine.CalcJob):
                     "run_icon.sh",
                 )
             )
+
         if "setup_env" in self.inputs:
             calcinfo.local_copy_list.append(
                 (
@@ -199,6 +214,15 @@ class IconCalculation(engine.CalcJob):
                 )
             )
             calcinfo.prepend_text = "\n".join([*calcinfo.get("prepend_text", "").splitlines(), "source ./setup_env.sh"])
+
+        for model, nmlpath in masternml.iter_model_name_filepath(master_namelist_data):
+            actions = calcutils.make_model_actions(
+                model, nmlpath, self.inputs.get("models", ports.PortNamespace()), self
+            )
+            for path in actions.create_dirs:
+                folder.get_subfolder(path, create=True)
+            calcinfo.local_copy_list += actions.local_copy_list
+            calcinfo.remote_copy_list += actions.remote_copy_list
         calcinfo.retrieve_list = [
             "finish.status",
             "nml.atmo.log",
@@ -302,15 +326,26 @@ class IconParser(parser.Parser):
         remote_folder = self.node.outputs.remote_folder
         remote_path = pathlib.Path(remote_folder.get_remote_path())
 
-        files = remote_folder.listdir()
         result = RestartResult(status=RestartStatus.MISSING)
         try:
-            all_restarts_pattern = modelnml.read_restart_file_pattern(self.node.inputs.model_namelist)
-            latest_restart_name = modelnml.read_latest_restart_file_link_name(self.node.inputs.model_namelist)
+            _ = remote_folder.computer.get_authinfo(user=orm.User.collection.get_default())
+        except aiidaxc.NotExistent:
+            self.logger.info("Can not parse restart file names: not possible to authenticate to the computer")
+            return result
+
+        files = remote_folder.listdir()
+        all_restarts_pattern = ""
+        latest_restart_name = ""
+        try:
+            modelnml_data = calcutils.collect_model_nml(self.node.get_builder_restart())
+            all_restarts_pattern = modelnml.read_restart_file_pattern(modelnml_data)
+            latest_restart_name = modelnml.read_latest_restart_file_link_name(modelnml_data)
         except exceptions.SinglefileRestartNotImplementedError:
             self.logger.info("Can not parse restart file names, singlefile mode is not supported.")
             if restart_indicated:
                 result.status = RestartStatus.ERROR
+        except exceptions.RemoteModelNamelistInaccessibleError:
+            self.logger.warning("Could not parse restart file names from remote model namelists.")
 
         for file_name in files:
             if restart_match := re.match(all_restarts_pattern, file_name):
@@ -333,7 +368,6 @@ class IconParser(parser.Parser):
 
     def _create_stream_key(self, stream_info: OutputStreamInfo) -> str:
         """Create a meaningful key from a stream info object."""
-        from aiida.common.links import validate_link_label
 
         if stream_info.output_filename:
             # Clean the output filename path for use as a link_label
@@ -364,7 +398,8 @@ class IconParser(parser.Parser):
         remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
         # Create RemoteData nodes for each output directory
-        for stream_info in modelnml.read_output_stream_infos(self.node.inputs.model_namelist):
+        modelnml_data = calcutils.collect_model_nml(self.node.get_builder_restart())
+        for stream_info in modelnml.read_output_stream_infos(modelnml_data):
             stream_key = self._create_stream_key(stream_info)
             full_output_path = remote_base_path / stream_info.path
 
