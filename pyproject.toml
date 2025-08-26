@@ -61,8 +61,8 @@ version-file = "src/aiida_icon/_version.py"
 
 [tool.hatch.envs.cscs-ci]
 extra-dependencies = [
-  "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@e68b3200ad60b1ea525c9c0a76adffe6c3a932e8",
-  "pyfirecrest@git+https://github.com/eth-cscs/pyfirecrest@933d1c50e11e1f3049ec9a7799cbc598e426949d",
+  "aiida-firecrest@git+https://github.com/DropD/aiida-firecrest@89e8960284a93ee84654d8e12f9b7e0d6f579ab5",
+  "pyfirecrest@git+https://github.com/eth-cscs/pyfirecrest@f07a2a948a148013ae4bcf6da93f26e8fd325d6a",
   "pytest"
 ]
 installer = "uv"
