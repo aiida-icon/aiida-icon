@@ -26,7 +26,7 @@ if typing.TYPE_CHECKING:
 
 
 class IconCalculation(engine.CalcJob):
-    """AiiDA calculation to run ICON."""
+    """AiiDA calculation to run ICON aquaplanet calcs."""
 
     @classmethod
     def get_builder(cls) -> process_builder.ProcessBuilder:
@@ -37,10 +37,8 @@ class IconCalculation(engine.CalcJob):
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
         spec.input_namespace("models", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
-        spec.input_namespace("model-inputs", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
-        # deprecated, use "models" namespace instead. Kept around for validity of existing nodes
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
-        # deprecated, use "model-inputs" namespace instead. Kept around for validity of existing nodes
+        # deprecated, use "model_inputs" namespace instead. Kept around for validity of existing nodes
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
         spec.input("restart_file", valid_type=orm.RemoteData, required=False)
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
