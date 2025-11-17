@@ -261,6 +261,7 @@ class RestartResult:
 class IconParser(parser.Parser):
     """Parser for raw Icon calculations."""
 
+    # TODO: Function to get all inputs / outputs via the namelist elements 
     def parse(self, **kwargs):  # noqa: ARG002  # kwargs must be there for superclass compatibility
         finish_status = self.parse_finish_status()
         if finish_status.message:
