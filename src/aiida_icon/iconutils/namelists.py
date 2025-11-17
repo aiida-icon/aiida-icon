@@ -20,17 +20,43 @@ def namelists_data(
             raise ValueError
 
 
-def namelist_to_dict(nml: f90nml.namelist.Namelist | typing.Any) -> dict | typing.Any:
+def namelist_to_dict(nml: f90nml.namelist.Namelist | typing.Any) -> dict | list | typing.Any:
     """Convert f90nml.Namelist to nested dict for JSON serialization.
 
     Recursively converts f90nml.Namelist objects to plain Python dicts,
     which can be stored in AiiDA node attributes for queryability.
 
+    Handles f90nml.Cogroup objects (duplicate namelist groups) by converting
+    them to lists of dicts.
+
     :param nml: An f90nml.Namelist object or any nested structure containing them.
     :returns: A nested dictionary representation suitable for AiiDA attributes.
     """
-    if isinstance(nml, f90nml.namelist.Namelist):
-        return {key: namelist_to_dict(value) for key, value in nml.items()}
+    # Check for Cogroup first (list of duplicate namelist groups)
+    # Cogroup inherits from both list and dict, so check it before dict
+    if isinstance(nml, f90nml.namelist.Cogroup):
+        return [namelist_to_dict(item) for item in nml]
+    elif isinstance(nml, f90nml.namelist.Namelist):
+        # f90nml.Namelist has special behavior with duplicate keys (Cogroups)
+        # We must access values BEFORE iterating over keys() to preserve Cogroup detection
+        # Get unique keys and their values in one pass
+        all_keys = list(nml.keys())
+        unique_keys = list(dict.fromkeys(all_keys))  # Preserve order, remove duplicates
+
+        # Build result by checking each unique key
+        # Note: For keys with duplicates, nml[key] should return Cogroup
+        # but f90nml has a bug where iterating keys() affects this behavior
+        # So we detect duplicates by counting occurrences in all_keys
+        result = {}
+        for key in unique_keys:
+            if all_keys.count(key) > 1:
+                # This key has duplicates - collect all occurrences as a list
+                # Use items() which yields each occurrence separately
+                values = [v for k, v in nml.items() if k == key]
+                result[key] = [namelist_to_dict(v) for v in values]
+            else:
+                result[key] = namelist_to_dict(nml[key])
+        return result
     elif isinstance(nml, dict):
         return {key: namelist_to_dict(value) for key, value in nml.items()}
     elif isinstance(nml, list):
