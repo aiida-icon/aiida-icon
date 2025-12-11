@@ -34,7 +34,7 @@ def collect_model_nml(namespace: ReadMapProtocol, *, download: bool = False) -> 
     # should go away at some point
     if "model_namelist" in namespace:
         result = f90nml.reads(
-            str(result) + "\n" + typing.cast(orm.SinglefileData, namespace["model_namelist"]).get_content(mode="r")
+            str(result) + "\n" + typing.cast("orm.SinglefileData", namespace["model_namelist"]).get_content(mode="r")
         )
     for nml in namespace.get("models", {}).values():
         match nml:

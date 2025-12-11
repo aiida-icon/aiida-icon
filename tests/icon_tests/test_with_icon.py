@@ -19,23 +19,23 @@ def test_simple_icon_run(simple_icon_run_builder: aiida.engine.ProcessBuilder):
     assert "remote_folder" in result
     remote_path = result["remote_folder"].get_remote_path()
 
-    assert (
-        "finish_status" in result
-    ), f"Icon run was not successful, no finish_status file found. Please check calculation folder in '{remote_path}'."
-    assert (
-        result["finish_status"].value == "RESTART"
-    ), f"Finish status is not RESTART. Please check calculation folder in '{remote_path}'."
+    assert "finish_status" in result, (
+        f"Icon run was not successful, no finish_status file found. Please check calculation folder in '{remote_path}'."
+    )
+    assert result["finish_status"].value == "RESTART", (
+        f"Finish status is not RESTART. Please check calculation folder in '{remote_path}'."
+    )
 
     # Test output streams
     expected_streams_and_files: dict[str, list[str]] = {"simple_icon_run_atm_2d": [], "simple_icon_run_atm_3d_pl": []}
 
     assert_output_streams(result, node, expected_streams_and_files)
 
-    parser = calculations.IconParser(typing.cast(aiida.orm.CalcJobNode, node))
+    parser = calculations.IconParser(typing.cast("aiida.orm.CalcJobNode", node))
     exit_code = parser.parse()
-    assert (
-        exit_code.status == 0
-    ), f"Exit code nonzero with message '{exit_code.message}'. Please check calculation folder in '{remote_path}'."
+    assert exit_code.status == 0, (
+        f"Exit code nonzero with message '{exit_code.message}'. Please check calculation folder in '{remote_path}'."
+    )
     assert result.get("latest_restart_file", None) is not None, "No 'latest_restart_file' was returned as output."
 
     # Second run from restart file
@@ -49,9 +49,9 @@ def test_simple_icon_run(simple_icon_run_builder: aiida.engine.ProcessBuilder):
     assert "remote_folder" in result
     remote_path = result["remote_folder"].get_remote_path()
 
-    assert (
-        "finish_status" in result
-    ), f"Icon run was not successful, no finish_status file found. Please check calculation folder in '{remote_path}'."
-    assert (
-        result["finish_status"].value == "OK"
-    ), f"Finish status is not OK. Please check calculation folder in '{remote_path}'."
+    assert "finish_status" in result, (
+        f"Icon run was not successful, no finish_status file found. Please check calculation folder in '{remote_path}'."
+    )
+    assert result["finish_status"].value == "OK", (
+        f"Finish status is not OK. Please check calculation folder in '{remote_path}'."
+    )

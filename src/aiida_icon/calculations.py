@@ -407,7 +407,7 @@ class IconParser(parser.Parser):
         output_streams = {}
 
         # Get the remote folder where outputs are stored
-        remote_folder = typing.cast(orm.RemoteData, self.node.outputs.remote_folder)
+        remote_folder = typing.cast("orm.RemoteData", self.node.outputs.remote_folder)
         remote_base_path = pathlib.Path(remote_folder.get_remote_path())
 
         # Create RemoteData nodes for each output directory

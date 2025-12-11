@@ -20,20 +20,20 @@ def assert_output_streams(res, node, expected_streams_and_files: dict[str, list[
 
     # Test structure and keys
     expected_keys = set(expected_streams_and_files.keys())
-    assert (
-        set(output_streams.keys()) == expected_keys
-    ), f"Expected keys {expected_keys}, got {set(output_streams.keys())}"
+    assert set(output_streams.keys()) == expected_keys, (
+        f"Expected keys {expected_keys}, got {set(output_streams.keys())}"
+    )
 
     # Test node outputs
     assert hasattr(node.outputs, "output_streams"), "No output_streams attached as node outputs."
-    assert all(
-        hasattr(node.outputs.output_streams, key) for key in expected_keys
-    ), "Not the right outputs attached to the output_streams AttributeDict."
+    assert all(hasattr(node.outputs.output_streams, key) for key in expected_keys), (
+        "Not the right outputs attached to the output_streams AttributeDict."
+    )
 
     # Test all values are RemoteData
-    assert all(
-        isinstance(stream, aiida.orm.RemoteData) for stream in output_streams.values()
-    ), "All output streams should be RemoteData"
+    assert all(isinstance(stream, aiida.orm.RemoteData) for stream in output_streams.values()), (
+        "All output streams should be RemoteData"
+    )
 
     # Test file names within each stream directory
     for stream_name, expected_files in expected_streams_and_files.items():
@@ -52,7 +52,7 @@ def assert_output_streams(res, node, expected_streams_and_files: dict[str, list[
                         actual_files.append(item)
 
                 assert set(actual_files) == set(expected_files), (
-                    f"Stream '{stream_name}' expected files {expected_files}, " f"got {actual_files} in {stream_path}"
+                    f"Stream '{stream_name}' expected files {expected_files}, got {actual_files} in {stream_path}"
                 )
             else:
                 msg = f"Stream directory '{stream_path}' does not exist on remote computer"

@@ -81,6 +81,9 @@ extra-dependencies = [
   "mkdocs-material"
 ]
 
+[tool.hatch.envs.hatch-static-analysis]
+dependencies = ["ruff==0.14.8"]
+
 [tool.hatch.envs.hatch-test]
 default-args = ["-m", "not requires_icon and not cscsci"]
 extra-args = ["-m", "not requires_icon and not cscsci"]
@@ -102,6 +105,7 @@ extra-dependencies = [
   "aiida-testing-dev",
   "types-requests"
 ]
+python = "3.12"
 
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"
