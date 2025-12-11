@@ -53,6 +53,8 @@ class IconCalculation(engine.CalcJob):
         spec.input("dmin_wetgrowth_lookup", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_sw", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_lw", valid_type=orm.RemoteData, required=False)
+        spec.input_namespace("link_paths", valid_type=orm.RemoteData, dynamic=True, required=False)
+        spec.input_namespace("link_dir_contents", valid_type=orm.RemoteData, dynamic=True, required=False)
         spec.output("latest_restart_file")
         spec.output_namespace("all_restart_files", dynamic=True)
         spec.output_namespace(
@@ -159,6 +161,17 @@ class IconCalculation(engine.CalcJob):
                     modelnml.read_latest_restart_file_link_name(model_namelist_data),
                 )
             )
+        if "link_paths" in self.inputs:
+            for remotedata in self.inputs.link_paths.values():
+                calcinfo.remote_symlink_list.append(
+                    calcutils.make_remote_path_triplet(remotedata),
+                )
+        if "link_dir_contents" in self.inputs:
+            for remotedata in self.inputs.link_dir_contents.values():
+                for subpath in remotedata.listdir():
+                    calcinfo.remote_symlink_list.append(
+                        (remotedata.computer.uuid, str(pathlib.Path(remotedata.get_remote_path()) / subpath), subpath)
+                    )
 
         calcinfo.remote_copy_list = []
         if "cloud_opt_props" in self.inputs:

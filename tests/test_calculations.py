@@ -80,6 +80,31 @@ def test_prepare_for_calc(mock_icon_calc, tmp_path):
     assert "./ecrad_data" in remote_link_names
 
 
+def test_prepare_arbitrary_links(icon_builder, tmp_path, datapath):
+    prepare_path = tmp_path / "test_prepare_simple"
+    prepare_path.mkdir()
+    sandbox_folder = folders.SandboxFolder(prepare_path.absolute())
+
+    icon_builder.master_namelist = orm.SinglefileData(
+        datapath.absolute() / "simple_icon_run" / "inputs" / "icon_master.namelist"
+    )
+    icon_builder.models.atm = orm.SinglefileData(datapath.absolute() / "simple_icon_run" / "inputs" / "model.namelist")
+    icon_builder.link_paths.foo = orm.RemoteData(
+        str(datapath.absolute() / "arbitrary_links" / "dir"), computer=icon_builder.code.computer
+    )
+    icon_builder.link_dir_contents.bar = orm.RemoteData(
+        str(datapath.absolute() / "arbitrary_links" / "dir_contents"), computer=icon_builder.code.computer
+    )
+    calc = calculations.IconCalculation(dict(icon_builder))
+    calcinfo = calc.presubmit(sandbox_folder)
+
+    remote_link_names = [triplet[2] for triplet in calcinfo.remote_symlink_list]
+
+    assert "dir" in remote_link_names
+    assert "bar.txt" in remote_link_names
+    assert "baz.txt" in remote_link_names
+
+
 def test_parser_simple(parser_case, icon_result):
     """Parsed output links and exit code should match expectations."""
     parser = calculations.IconParser(icon_result)
