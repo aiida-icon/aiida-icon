@@ -43,14 +43,14 @@ jobs:
         persist-credentials: false
 
     - name: Set up Spack
-      uses: spack/setup-spack@5ab3c91bdefffffad9a7e45d1d156146afebb3a7
+      uses: spack/setup-spack@5ab3c91bdefffffad9a7e45d1d156146afebb3a7 # v2.1.1
       with:
         buildcache: true
 
     - name: Install Python and ICON
       env:
-        SPACK_OCI_USER: aiida-icon
-        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
+        GITHUB_USER: ${{ github.actor }}
+        SPACK_OCI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         sudo apt install gcc-11 g++-11 gfortran-11
         spack -e . add python@${{matrix.python-version}}
