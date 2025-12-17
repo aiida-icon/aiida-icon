@@ -53,8 +53,27 @@ class IconCalculation(engine.CalcJob):
         spec.input("dmin_wetgrowth_lookup", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_sw", valid_type=orm.RemoteData, required=False)
         spec.input("rrtmg_lw", valid_type=orm.RemoteData, required=False)
-        spec.input_namespace("link_paths", valid_type=orm.RemoteData, dynamic=True, required=False)
-        spec.input_namespace("link_dir_contents", valid_type=orm.RemoteData, dynamic=True, required=False)
+        spec.input_namespace(
+            "link_paths",
+            valid_type=orm.RemoteData,
+            dynamic=True,
+            required=False,
+            help=(
+                "Remote directories or files to be linked into the calculation's work dir."
+                " Potentially circumvents sanity checks, paths with the same dir / file name will lead to undefined behavior."
+            ),
+        )
+        spec.input_namespace(
+            "link_dir_contents",
+            valid_type=orm.RemoteData,
+            dynamic=True,
+            required=False,
+            help=(
+                "Remote directories, for each, the contents will be directly linked into the calculation's work dir. "
+                "Potentially circumvents sanity checks. It's up to the user to guarantee there are no files with the same "
+                "name in multiple directories, otherwise behavior is undefined."
+            ),
+        )
         spec.output("latest_restart_file")
         spec.output_namespace("all_restart_files", dynamic=True)
         spec.output_namespace(
@@ -170,7 +189,11 @@ class IconCalculation(engine.CalcJob):
             for remotedata in self.inputs.link_dir_contents.values():
                 for subpath in remotedata.listdir():
                     calcinfo.remote_symlink_list.append(
-                        (remotedata.computer.uuid, str(pathlib.Path(remotedata.get_remote_path()) / subpath), subpath)
+                        (
+                            remotedata.computer.uuid,
+                            str(pathlib.Path(remotedata.get_remote_path()) / subpath),
+                            subpath,
+                        )
                     )
 
         calcinfo.remote_copy_list = []
@@ -226,7 +249,12 @@ class IconCalculation(engine.CalcJob):
                     "setup_env.sh",
                 )
             )
-            calcinfo.prepend_text = "\n".join([*calcinfo.get("prepend_text", "").splitlines(), "source ./setup_env.sh"])
+            calcinfo.prepend_text = "\n".join(
+                [
+                    *calcinfo.get("prepend_text", "").splitlines(),
+                    "source ./setup_env.sh",
+                ]
+            )
 
         for model, nmlpath in masternml.iter_model_name_filepath(master_namelist_data):
             actions = calcutils.make_model_actions(
