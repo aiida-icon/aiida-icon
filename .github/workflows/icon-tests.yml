@@ -49,8 +49,8 @@ jobs:
 
     - name: Install Python and ICON
       env:
-        SPACK_OCI_USER: ${{ github.actor }}
-        SPACK_OCI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SPACK_OCI_USER: aiida-icon
+        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
       run: |
         sudo apt install gcc-11 g++-11 gfortran-11
         spack -e . add python@${{matrix.python-version}}
@@ -58,8 +58,8 @@ jobs:
 
     - name: Push installation to buildcache and update index
       env:
-        SPACK_OCI_USER: ${{ github.actor }}
-        SPACK_OCI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SPACK_OCI_USER: aiida-icon
+        SPACK_OCI_TOKEN: ${{ secrets.SPACK_OCI_TOKEN }}
       run: spack -e . buildcache push --base-image ubuntu:latest --update-index local-buildcache
       if: ${{ !cancelled() }}
 
