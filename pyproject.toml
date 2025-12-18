@@ -102,6 +102,17 @@ extra-dependencies = [
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13"]
 
+[tool.hatch.envs.tyexp]
+extra-dependencies = [
+  "ty",
+  "pytest",
+  "aiida-testing-dev"
+]
+python = "3.12"
+
+[tool.hatch.envs.tyexp.scripts]
+check = "ty check"
+
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
