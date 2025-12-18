@@ -72,7 +72,11 @@ python = "3.12"
 test = "pytest -m cscsci -s"
 
 [tool.hatch.envs.default]
-dependencies = ["aiida-core==2.7.1", "click==8.1.8", "f90nml==1.4.5"]
+dependencies = [
+  "aiida-core@git+https://github.com/aiidateam/aiida-core@a770d7a6e7a727ef1d0bb09cd3e5ae4f3b1d4eb4",
+  "click==8.1.8",
+  "f90nml==1.4.5"
+]
 installer = "uv"
 
 [tool.hatch.envs.docs]
