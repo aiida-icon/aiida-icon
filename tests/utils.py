@@ -1,6 +1,7 @@
 import pathlib
 
 import aiida
+import aiida.orm
 
 
 def assert_output_streams(res, node, expected_streams_and_files: dict[str, list[str]]):

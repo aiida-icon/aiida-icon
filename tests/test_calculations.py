@@ -98,7 +98,7 @@ def test_prepare_arbitrary_links(icon_builder, tmp_path, datapath):
     calc = calculations.IconCalculation(dict(icon_builder))
     calcinfo = calc.presubmit(sandbox_folder)
 
-    remote_link_names = [triplet[2] for triplet in calcinfo.remote_symlink_list]
+    remote_link_names = [triplet[2] for triplet in calcinfo.remote_symlink_list or []]
 
     assert "dir" in remote_link_names
     assert "bar.txt" in remote_link_names
@@ -192,6 +192,7 @@ def test_models_namespace_abs_empty(icon_code, datapath, tmp_path, caplog, abspa
 
     assert calcinfo.remote_symlink_list == []
     assert calcinfo.remote_copy_list == []
+    assert calcinfo.local_copy_list is not None
     assert len(calcinfo.local_copy_list) == 1  # only master nml
     assert dict(calc.inputs.models) == {}
     assert re.search(
@@ -220,6 +221,7 @@ def test_models_namespace_abs_full(icon_code, datapath, tmp_path, caplog, abspat
 
     assert calcinfo.remote_symlink_list == []
     assert calcinfo.remote_copy_list == []
+    assert calcinfo.local_copy_list is not None
     assert len(calcinfo.local_copy_list) == 1  # only master nml
     assert re.search(
         r"Remote path .* for model input 'bar' does not match absolute path given in master namelists (.*). Using the path in master namelists.",

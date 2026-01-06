@@ -61,6 +61,7 @@ version-file = "src/aiida_icon/_version.py"
 
 [tool.hatch.envs.cscs-ci]
 extra-dependencies = [
+  "aiida-core@git+https://github.com/aiidateam/aiida-core@a770d7a6e7a727ef1d0bb09cd3e5ae4f3b1d4eb4",
   "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@703e330e0b1bd7882e0be04e70e04642f30be899",
   # "pyfirecrest@git+https://github.com/eth-cscs/pyfirecrest@933d1c50e11e1f3049ec9a7799cbc598e426949d",
   "pytest"
@@ -72,7 +73,11 @@ python = "3.12"
 test = "pytest -m cscsci -s"
 
 [tool.hatch.envs.default]
-dependencies = ["aiida-core==2.7.1", "click==8.1.8", "f90nml==1.4.5"]
+dependencies = [
+  "aiida-core@git+https://github.com/aiidateam/aiida-core@a770d7a6e7a727ef1d0bb09cd3e5ae4f3b1d4eb4",
+  "click==8.1.8",
+  "f90nml==1.4.5"
+]
 installer = "uv"
 
 [tool.hatch.envs.docs]
@@ -89,7 +94,7 @@ default-args = ["-m", "not requires_icon and not cscsci"]
 extra-args = ["-m", "not requires_icon and not cscsci"]
 extra-dependencies = [
   "aiida-testing-dev",
-  "aiida-core==2.7.1",
+  "aiida-core@git+https://github.com/aiidateam/aiida-core@a770d7a6e7a727ef1d0bb09cd3e5ae4f3b1d4eb4",
   "click==8.1.8",
   "f90nml==1.4.5",
   "ipdb"
@@ -97,6 +102,17 @@ extra-dependencies = [
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13"]
+
+[tool.hatch.envs.tyexp]
+extra-dependencies = [
+  "ty",
+  "pytest",
+  "aiida-testing-dev"
+]
+python = "3.12"
+
+[tool.hatch.envs.tyexp.scripts]
+check = "ty check"
 
 [tool.hatch.envs.types]
 extra-dependencies = [

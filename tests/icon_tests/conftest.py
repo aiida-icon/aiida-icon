@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import functools
 import logging
-import pathlib
 import subprocess
 import typing
 
 import aiida
+import aiida.engine
+import aiida.orm
 import pytest
 import requests
+
+if typing.TYPE_CHECKING:
+    import pathlib
 
 LOGGER = logging.getLogger(__name__)
 

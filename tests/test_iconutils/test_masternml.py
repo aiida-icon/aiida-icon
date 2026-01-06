@@ -99,7 +99,7 @@ def test_modify_master_nml(write_restart_options):
     assert options.is_stored
     assert modified.is_stored
 
-    data = f90nml.reads(modified.get_content())
+    data = f90nml.reads(modified.get_content(mode="r"))
     for section, section_data in options.items():
         for key, value in section_data.items():
             assert data[section][key] == value

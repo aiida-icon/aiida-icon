@@ -1,6 +1,8 @@
 import typing
 
 import aiida
+import aiida.engine
+import aiida.orm
 import pytest
 
 from aiida_icon import calculations
