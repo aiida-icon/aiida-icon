@@ -1,4 +1,5 @@
 import aiida
+import aiida.orm
 from aiida.engine import processes
 
 from aiida_icon import builder, tools

@@ -3,6 +3,7 @@ import tempfile
 import textwrap
 
 import aiida
+import aiida.orm
 import f90nml
 import pytest
 
