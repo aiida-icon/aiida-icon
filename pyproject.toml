@@ -61,8 +61,8 @@ version-file = "src/aiida_icon/_version.py"
 
 [tool.hatch.envs.cscs-ci]
 extra-dependencies = [
-  "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@e68b3200ad60b1ea525c9c0a76adffe6c3a932e8",
-  "pyfirecrest@git+https://github.com/eth-cscs/pyfirecrest@933d1c50e11e1f3049ec9a7799cbc598e426949d",
+  "aiida-firecrest@git+https://github.com/aiidateam/aiida-firecrest@703e330e0b1bd7882e0be04e70e04642f30be899",
+  # "pyfirecrest@git+https://github.com/eth-cscs/pyfirecrest@933d1c50e11e1f3049ec9a7799cbc598e426949d",
   "pytest"
 ]
 installer = "uv"
@@ -80,6 +80,9 @@ extra-dependencies = [
   "mkdocs",
   "mkdocs-material"
 ]
+
+[tool.hatch.envs.hatch-static-analysis]
+dependencies = ["ruff==0.14.8"]
 
 [tool.hatch.envs.hatch-test]
 default-args = ["-m", "not requires_icon and not cscsci"]
@@ -102,6 +105,7 @@ extra-dependencies = [
   "aiida-testing-dev",
   "types-requests"
 ]
+python = "3.12"
 
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/aiida_icon tests}"

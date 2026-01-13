@@ -14,7 +14,7 @@ from typing_extensions import Self
 if typing.TYPE_CHECKING:
     from aiida.engine.processes import builder as aiida_builder
 
-from aiida_icon.calculations import IconCalculation
+from aiida_icon.calculations import IconCalculation, IconParser
 
 # pytest configuration
 
@@ -228,8 +228,6 @@ def icon_calc_with_wrapper(datapath, icon_builder):
 @pytest.fixture
 def icon_parser(aiida_computer_local):
     """Create a minimal parser instance for unit testing."""
-    from aiida_icon.calculations import IconParser
-
     computer = aiida_computer_local()
     calc_node = aiida.orm.CalcJobNode(computer=computer)
 
