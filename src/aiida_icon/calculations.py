@@ -74,6 +74,8 @@ class IconCalculation(engine.CalcJob):
                 "name in multiple directories, otherwise behavior is undefined."
             ),
         )
+        spec.input("extpar_file", valid_type=orm.RemoteData, required=False)
+        spec.input("ifs2icon", valid_type=orm.RemoteData, required=False)
         spec.output("latest_restart_file")
         spec.output_namespace("all_restart_files", dynamic=True)
         spec.output_namespace(
@@ -170,6 +172,20 @@ class IconCalculation(engine.CalcJob):
                     self.inputs.code.computer.uuid,
                     self.inputs.rrtmg_lw.get_remote_path(),
                     "rrtmg_lw.nc",
+                )
+            )
+        if "extpar_file" in self.inputs:
+            calcinfo.remote_symlink_list.append(
+                make_remote_path_triplet_from_models(
+                    self.inputs.extpar_file,
+                    lookup_path="extpar_nml.extpar_filename",
+                )
+            )
+        if "ifs2icon" in self.inputs:
+            calcinfo.remote_symlink_list.append(
+                make_remote_path_triplet_from_models(
+                    self.inputs.ifs2icon,
+                    lookup_path="initicon_nml.ifs2icon_filename",
                 )
             )
         if "restart_file" in self.inputs:
