@@ -16,30 +16,33 @@ class OutputStreamInfo(NamedTuple):
     stream_index: int
 
 
-def read_restart_file_pattern(model_nml: namelists.NMLInput) -> str:
+def read_restart_file_pattern(model_name: str, model_nml: namelists.NMLInput) -> str:
     data = namelists.namelists_data(model_nml)
 
-    io_nmls = data.get("io_nml", {})
-    if not isinstance(io_nmls, list):
-        io_nmls = [io_nmls]
+    io_nml = data.get("io_nml", {})
 
-    restart_write_modes = [
-        io_nml.get("io_nml", {}).get("restart_write_mode", "joint procs multifile") for io_nml in io_nmls
-    ]
-    if any("multifile" not in restart_write_mode for restart_write_mode in restart_write_modes):
-        raise exceptions.SinglefileRestartNotImplementedError
+    restart_write_mode = io_nml.get("io_nml", {}).get(
+        "restart_write_mode", "joint procs multifile"
+    )
 
-    return r"multifile_restart_(?P<modelname>\w*)_(?P<timestamp>\d{8}T\d{6}Z).mfr"
-
-
-def read_latest_restart_file_link_name(model_nml: namelists.NMLInput) -> str:
-    data = namelists.namelists_data(model_nml)
-
-    restart_write_mode = data.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
     if "multifile" not in restart_write_mode:
         raise exceptions.SinglefileRestartNotImplementedError
 
-    return "multifile_restart_atm.mfr"
+    return rf"multifile_restart_{model_name}_(?P<timestamp>\d{8}T\d{6}Z).mfr"
+
+
+def read_latest_restart_file_link_name(
+    model_name: str, model_nml: namelists.NMLInput
+) -> str:
+    data = namelists.namelists_data(model_nml)
+
+    restart_write_mode = data.get("io_nml", {}).get(
+        "restart_write_mode", "joint procs multifile"
+    )
+    if "multifile" not in restart_write_mode:
+        raise exceptions.SinglefileRestartNotImplementedError
+
+    return f"multifile_restart_{model_name}.mfr"
 
 
 def read_output_stream_infos(
@@ -52,15 +55,21 @@ def read_output_stream_infos(
 
     # wrap in list if there is only one
     stream_spec_list: list[f90nml.namelist.Namelist] = (
-        [output_data] if isinstance(output_data, f90nml.namelist.Namelist) else output_data
+        [output_data]
+        if isinstance(output_data, f90nml.namelist.Namelist)
+        else output_data
     )
 
     output_streams = []
     for i, stream_spec in enumerate(stream_spec_list):
         # Replicate ICON logic in forming the filenames to get the output dir
-        filename_format = stream_spec.get("filename_format", "<output_filename>_XXX_YYY")
+        filename_format = stream_spec.get(
+            "filename_format", "<output_filename>_XXX_YYY"
+        )
         output_filename = stream_spec.get("output_filename", "")
-        path = pathlib.Path(filename_format.replace("<output_filename>", output_filename)).parent
+        path = pathlib.Path(
+            filename_format.replace("<output_filename>", output_filename)
+        ).parent
 
         output_streams.append(
             OutputStreamInfo(
