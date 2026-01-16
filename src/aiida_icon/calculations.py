@@ -74,7 +74,7 @@ class IconCalculation(engine.CalcJob):
                 "name in multiple directories, otherwise behavior is undefined."
             ),
         )
-        spec.output("latest_restart_file")
+        spec.output_namespace("latest_restart_file", dynamic=True)
         spec.output_namespace("all_restart_files", dynamic=True)
         spec.output_namespace(
             "output_streams",

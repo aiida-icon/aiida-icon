@@ -27,6 +27,7 @@ pytest_plugins = ["aiida.tools.pytest_fixtures"]
 @dataclasses.dataclass
 class ParserCase:
     datapath: pathlib.Path
+    models: dict[str, str]
     exit_code: int
     required_output_links: list[str]
     disallowed_output_links: list[str]
@@ -34,9 +35,17 @@ class ParserCase:
 
 
 PARSER_CASES = {
-    "simple_icon_run": ("simple_icon_run", 0, ["finish_status"], [], "OK"),
+    "simple_icon_run": (
+        "simple_icon_run",
+        {"atm": "model.namelist"},
+        0,
+        ["finish_status"],
+        [],
+        "OK",
+    ),
     "restarts_present": (
         "restarts_present",
+        {"atm": "model.namelist"},
         0,
         ["finish_status", "latest_restart_file", "all_restart_files"],
         [],
@@ -44,10 +53,19 @@ PARSER_CASES = {
     ),
     "restarts_missing": (
         "restarts_missing",
+        {"atm": "model.namelist"},
         304,
         ["finish_status"],
         ["latest_restart_file", "all_restart_files"],
         "RESTART",
+    ),
+    "multimodel": (
+        "multi_model_run",
+        {"atm": "atm.namelist", "ocean": "ocean.namelist"},
+        0,
+        ["finish_status", "latest_restart_file", "all_restart_files"],
+        [],
+        "OK",
     ),
 }
 
@@ -66,6 +84,7 @@ def datapath() -> pathlib.Path:
 def parser_case(case_name, datapath: pathlib.Path):
     (
         case_name,
+        models,
         exit_code,
         required_output_links,
         disallowed_output_links,
@@ -73,6 +92,7 @@ def parser_case(case_name, datapath: pathlib.Path):
     ) = PARSER_CASES[case_name]
     return ParserCase(
         datapath / case_name,
+        models,
         exit_code,
         required_output_links,
         disallowed_output_links,
@@ -148,7 +168,8 @@ def icon_result(parser_case, aiida_computer_local):
     make_remote = functools.partial(aiida.orm.RemoteData, computer=computer)
     builder = FakeIconBuilder(computer=computer)
     builder.inputs.master_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "icon_master.namelist")
-    builder.inputs.models.atm = aiida.orm.SinglefileData(datapath / "inputs" / "model.namelist")
+    for model, filename in parser_case.models.items():
+        setattr(builder.inputs.models, model, aiida.orm.SinglefileData(datapath / "inputs" / filename))
     builder.inputs.dynamics_grid_file = make_remote(
         remote_path=str(datapath.absolute() / "inputs" / "icon_grid_simple.nc")
     )

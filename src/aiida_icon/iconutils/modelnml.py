@@ -19,11 +19,17 @@ class OutputStreamInfo(NamedTuple):
 def read_restart_file_pattern(model_nml: namelists.NMLInput) -> str:
     data = namelists.namelists_data(model_nml)
 
-    restart_write_mode = data.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
-    if "multifile" not in restart_write_mode:
+    io_nmls = data.get("io_nml", {})
+    if not isinstance(io_nmls, list):
+        io_nmls = [io_nmls]
+
+    restart_write_modes = [
+        io_nml.get("io_nml", {}).get("restart_write_mode", "joint procs multifile") for io_nml in io_nmls
+    ]
+    if any("multifile" not in restart_write_mode for restart_write_mode in restart_write_modes):
         raise exceptions.SinglefileRestartNotImplementedError
 
-    return r"multifile_restart_atm_(?P<timestamp>\d{8}T\d{6}Z).mfr"
+    return r"multifile_restart_(?P<modelname>\w*)_(?P<timestamp>\d{8}T\d{6}Z).mfr"
 
 
 def read_latest_restart_file_link_name(model_nml: namelists.NMLInput) -> str:
