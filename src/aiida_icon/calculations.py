@@ -37,10 +37,17 @@ class IconCalculation(engine.CalcJob):
     def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
-        spec.input_namespace("models", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
+        spec.input_namespace(
+            "models",
+            valid_type=(orm.SinglefileData, orm.RemoteData),
+            required=False,
+            help="Namelist file for each model (model name must match entry in master namelist).",
+        )
         # deprecated, use "models" namespace instead. Kept around for validity of existing nodes
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
-        spec.input("restart_file", valid_type=orm.RemoteData, required=False)
+        spec.input_namespace(
+            "restart_file", valid_type=orm.RemoteData, required=False, help="Per-model restart files to start from."
+        )
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
         spec.input(
             "setup_env",
@@ -174,13 +181,17 @@ class IconCalculation(engine.CalcJob):
                 )
             )
         if "restart_file" in self.inputs:
-            calcinfo.remote_symlink_list.append(
-                (
-                    self.inputs.code.computer.uuid,
-                    self.inputs.restart_file.get_remote_path(),
-                    modelnml.read_latest_restart_file_link_name(model_namelist_data),
+            for model_name, remfile in self.inputs.restart_file.items():
+                calcinfo.remote_symlink_list.append(
+                    (
+                        self.inputs.code.computer.uuid,
+                        remfile.get_remote_path(),
+                        modelnml.read_latest_restart_file_link_name(
+                            model_namelist_data,
+                            model_nml=calcutils.fetch_model_nml(self.inputs.models[model_name]),
+                        ),
+                    )
                 )
-            )
         if "link_paths" in self.inputs:
             for remotedata in self.inputs.link_paths.values():
                 calcinfo.remote_symlink_list.append(

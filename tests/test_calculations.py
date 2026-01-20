@@ -155,7 +155,6 @@ def test_multimodel_restart_parsing(case_name, parser_case, icon_result):
     parser = calculations.IconParser(icon_result)
     parser.parse()
     assert pathlib.Path(parser.outputs["latest_restart_file.atm"].get_remote_path()).name == "multifile_restart_atm.mfr"
-    print(parser.outputs)
     assert (
         pathlib.Path(parser.outputs["all_restart_files.atm"]["restart_20000101T030000Z"].get_remote_path()).name
         == "multifile_restart_atm_20000101T030000Z.mfr"

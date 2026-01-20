@@ -33,12 +33,14 @@ class ReporterProtocol(typing.Protocol):
 
 @functools.singledispatch
 def fetch_model_nml(data: typing.Any, *, download: bool = False) -> f90nml.Namelist:
+    _ = download
     msg = f"Unexpected type for a model namelist input: {type(data)}"
     raise TypeError(msg)
 
 
 @fetch_model_nml.register
 def fetch_model_nml_from_singlefile(data: orm.SinglefileData, *, download: bool = False) -> f90nml.Namelist:
+    _ = download
     return f90nml.reads(data.get_content(mode="r"))
 
 
@@ -73,7 +75,7 @@ def iter_model_nml(
             if logger:
                 logger.warning("Could not ensure consistency with model namelist for '%s': %s", model_name, str(err))
             if strict:
-                raise err
+                raise
 
 
 def collect_model_nml(
