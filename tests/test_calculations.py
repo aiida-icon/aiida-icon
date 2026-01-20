@@ -121,8 +121,8 @@ def test_prepare_multimodel(icon_builder, add_input_files, tmp_path, datapath):
     assert sandbox_folder.get_subfolder("out_atm_2d", create=False).exists()
     assert sandbox_folder.get_subfolder("out_atm_3d", create=False).exists()
     assert sandbox_folder.get_subfolder("out_ocean", create=False).exists()
-    assert (icon_builder.models.atm.uuid, "atm.namelist", "atm.namelist") in calcinfo.local_copy_list
-    assert (icon_builder.models.ocean.uuid, "ocean.namelist", "ocean.namelist") in calcinfo.local_copy_list
+    assert (calc.inputs.models.atm.uuid, "atm.namelist", "atm.namelist") in calcinfo.local_copy_list
+    assert (calc.inputs.models.ocean.uuid, "ocean.namelist", "ocean.namelist") in calcinfo.local_copy_list
 
 
 def test_parser_simple(parser_case, icon_result):
@@ -142,9 +142,9 @@ def test_additional_restart_parsing(case_name, parser_case, icon_result):
     """Check the contents of restarts related parsing outputs."""
     parser = calculations.IconParser(icon_result)
     parser.parse()
-    assert pathlib.Path(parser.outputs.latest_restart_file.atm.get_remote_path()).name == "multifile_restart_atm.mfr"
+    assert pathlib.Path(parser.outputs["latest_restart_file.atm"].get_remote_path()).name == "multifile_restart_atm.mfr"
     assert (
-        pathlib.Path(parser.outputs.all_restart_files.atm["restart_20000101T030000Z"].get_remote_path()).name
+        pathlib.Path(parser.outputs["all_restart_files.atm"]["restart_20000101T030000Z"].get_remote_path()).name
         == "multifile_restart_atm_20000101T030000Z.mfr"
     )
 
@@ -154,16 +154,18 @@ def test_multimodel_restart_parsing(case_name, parser_case, icon_result):
     """Check that restart files for all models are parsed."""
     parser = calculations.IconParser(icon_result)
     parser.parse()
-    assert pathlib.Path(parser.outputs.latest_restart_file.atm.get_remote_path()).name == "multifile_restart_atm.mfr"
+    assert pathlib.Path(parser.outputs["latest_restart_file.atm"].get_remote_path()).name == "multifile_restart_atm.mfr"
+    print(parser.outputs)
     assert (
-        pathlib.Path(parser.outputs.all_restart_files.atm["restart_20000101T030000Z"].get_remote_path()).name
+        pathlib.Path(parser.outputs["all_restart_files.atm"]["restart_20000101T030000Z"].get_remote_path()).name
         == "multifile_restart_atm_20000101T030000Z.mfr"
     )
     assert (
-        pathlib.Path(parser.outputs.latest_restart_file.ocean.get_remote_path()).name == "multifile_restart_ocean.mfr"
+        pathlib.Path(parser.outputs["latest_restart_file.ocean"].get_remote_path()).name
+        == "multifile_restart_ocean.mfr"
     )
     assert (
-        pathlib.Path(parser.outputs.all_restart_files.ocean["restart_20000101T030000Z"].get_remote_path()).name
+        pathlib.Path(parser.outputs["all_restart_files.ocean"]["restart_20000101T030000Z"].get_remote_path()).name
         == "multifile_restart_ocean_20000101T030000Z.mfr"
     )
 
@@ -262,7 +264,7 @@ def test_models_namespace_abs_full(icon_code, datapath, tmp_path, caplog, abspat
     assert len(calcinfo.local_copy_list) == 1  # only master nml
     assert re.search(
         r"Remote path .* for model input 'bar' does not match absolute path given in master namelists (.*). Using the path in master namelists.",
-        caplog.record_tuples[0][2],
+        caplog.record_tuples[2][2],
         re.MULTILINE,
     )
 
