@@ -36,10 +36,12 @@ def test_simple_icon_run(simple_icon_run_builder: aiida.engine.ProcessBuilder):
     assert exit_code.status == 0, (
         f"Exit code nonzero with message '{exit_code.message}'. Please check calculation folder in '{remote_path}'."
     )
-    assert result.get("latest_restart_file.atm", None) is not None, "No 'latest_restart_file' was returned as output."
+    assert result.get("latest_restart_file", {}).get("atm") is not None, (
+        "No 'latest_restart_file.atm' was returned as output."
+    )
 
     # Second run from restart file
-    icon_builder.restart_file.atm = result["latest_restart_file.atm"]
+    icon_builder.restart_file.atm = result["latest_restart_file"]["atm"]
 
     mastern_nml_options = aiida.orm.Dict({"master_nml": {"lrestart": True, "read_restart_namelists": True}})
     icon_builder.master_namelist = modify_master_nml(icon_builder.master_namelist, mastern_nml_options)  # type: ignore[attr-defined]
