@@ -115,6 +115,12 @@ def test_prepare_multimodel(icon_builder, add_input_files, tmp_path, datapath):
     add_input_files(inputs_path, icon_builder)
     icon_builder.models.atm = orm.SinglefileData(inputs_path / "atm.namelist")
     icon_builder.models.ocean = orm.SinglefileData(inputs_path / "ocean.namelist")
+    icon_builder.restart_file.atm = orm.RemoteData(
+        str(inputs_path.parent / "outputs" / "multifile_restart_atm.mfr"), computer=icon_builder.code.computer
+    )
+    icon_builder.restart_file.ocean = orm.RemoteData(
+        str(inputs_path.parent / "outputs" / "multifile_restart_ocean.mfr"), computer=icon_builder.code.computer
+    )
     calc = calculations.IconCalculation(dict(icon_builder))
     calcinfo = calc.presubmit(sandbox_folder)
 
@@ -123,6 +129,16 @@ def test_prepare_multimodel(icon_builder, add_input_files, tmp_path, datapath):
     assert sandbox_folder.get_subfolder("out_ocean", create=False).exists()
     assert (calc.inputs.models.atm.uuid, "atm.namelist", "atm.namelist") in calcinfo.local_copy_list
     assert (calc.inputs.models.ocean.uuid, "ocean.namelist", "ocean.namelist") in calcinfo.local_copy_list
+    assert (
+        icon_builder.code.computer.uuid,
+        icon_builder.restart_file["atm"].get_remote_path(),
+        "multifile_restart_atm.mfr",
+    ) in calcinfo.remote_symlink_list
+    assert (
+        icon_builder.code.computer.uuid,
+        icon_builder.restart_file["ocean"].get_remote_path(),
+        "multifile_restart_ocean.mfr",
+    ) in calcinfo.remote_symlink_list
 
 
 def test_parser_simple(parser_case, icon_result):

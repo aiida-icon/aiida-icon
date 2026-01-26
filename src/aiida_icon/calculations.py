@@ -187,7 +187,7 @@ class IconCalculation(engine.CalcJob):
                         self.inputs.code.computer.uuid,
                         remfile.get_remote_path(),
                         modelnml.read_latest_restart_file_link_name(
-                            model_namelist_data,
+                            model_name=model_name,
                             model_nml=calcutils.fetch_model_nml(self.inputs.models[model_name]),
                         ),
                     )
