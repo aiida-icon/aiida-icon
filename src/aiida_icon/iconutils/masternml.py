@@ -33,10 +33,10 @@ class MasterOptions(OptionsMixin):
 
 @dataclasses.dataclass
 class TimeControlOptions(OptionsMixin):
-    experiment_start_date: str | None = None
-    experiment_stop_date: str | None = None
-    restart_time_int_val: str | None = None
-    checkpoint_time_int_val: str | None = None
+    experimentstartdate: str | None = None
+    experimentstopdate: str | None = None
+    restarttimeintval: str | None = None
+    checkpointtimeintval: str | None = None
 
 
 def options(master_options: MasterOptions, time_control_options: TimeControlOptions) -> dict[str, dict[str, Any]]:

@@ -4,5 +4,5 @@ class SinglefileRestartNotImplementedError(Exception):
 
 
 class RemoteModelNamelistInaccessibleError(Exception):
-    def __init__(self):
-        super().__init__("One or more model namelists were given as remote paths and could not be read.")
+    def __init__(self, msg: str = ""):
+        super().__init__(f"One or more model namelists were given as remote paths and could not be read ({msg}).")

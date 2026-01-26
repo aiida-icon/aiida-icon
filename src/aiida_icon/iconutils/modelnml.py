@@ -16,24 +16,27 @@ class OutputStreamInfo(NamedTuple):
     stream_index: int
 
 
-def read_restart_file_pattern(model_nml: namelists.NMLInput) -> str:
+def read_restart_file_pattern(model_name: str, model_nml: namelists.NMLInput) -> str:
+    data = namelists.namelists_data(model_nml)
+
+    io_nml = data.get("io_nml", {})
+
+    restart_write_mode = io_nml.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
+
+    if "multifile" not in restart_write_mode:
+        raise exceptions.SinglefileRestartNotImplementedError
+
+    return r"multifile_restart_" + model_name + r"_(?P<timestamp>\d{8}T\d{6}Z).mfr"
+
+
+def read_latest_restart_file_link_name(model_name: str, model_nml: namelists.NMLInput) -> str:
     data = namelists.namelists_data(model_nml)
 
     restart_write_mode = data.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
     if "multifile" not in restart_write_mode:
         raise exceptions.SinglefileRestartNotImplementedError
 
-    return r"multifile_restart_atm_(?P<timestamp>\d{8}T\d{6}Z).mfr"
-
-
-def read_latest_restart_file_link_name(model_nml: namelists.NMLInput) -> str:
-    data = namelists.namelists_data(model_nml)
-
-    restart_write_mode = data.get("io_nml", {}).get("restart_write_mode", "joint procs multifile")
-    if "multifile" not in restart_write_mode:
-        raise exceptions.SinglefileRestartNotImplementedError
-
-    return "multifile_restart_atm.mfr"
+    return f"multifile_restart_{model_name}.mfr"
 
 
 def read_output_stream_infos(
