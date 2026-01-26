@@ -27,6 +27,7 @@ pytest_plugins = ["aiida.tools.pytest_fixtures"]
 @dataclasses.dataclass
 class ParserCase:
     datapath: pathlib.Path
+    models: dict[str, str]
     exit_code: int
     required_output_links: list[str]
     disallowed_output_links: list[str]
@@ -34,20 +35,43 @@ class ParserCase:
 
 
 PARSER_CASES = {
-    "simple_icon_run": ("simple_icon_run", 0, ["finish_status"], [], "OK"),
+    "simple_icon_run": (
+        "simple_icon_run",
+        {"atm": "model.namelist"},
+        0,
+        ["finish_status"],
+        [],
+        "OK",
+    ),
     "restarts_present": (
         "restarts_present",
+        {"atm": "model.namelist"},
         0,
-        ["finish_status", "latest_restart_file", "all_restart_files"],
+        ["finish_status", "latest_restart_file.atm", "all_restart_files.atm"],
         [],
         "RESTART",
     ),
     "restarts_missing": (
         "restarts_missing",
+        {"atm": "model.namelist"},
         304,
         ["finish_status"],
-        ["latest_restart_file", "all_restart_files"],
+        ["latest_restart_file.atm", "all_restart_files.atm"],
         "RESTART",
+    ),
+    "multimodel": (
+        "multi_model_run",
+        {"atm": "atm.namelist", "ocean": "ocean.namelist"},
+        0,
+        [
+            "finish_status",
+            "latest_restart_file.atm",
+            "latest_restart_file.ocean",
+            "all_restart_files.atm",
+            "all_restart_files.ocean",
+        ],
+        [],
+        "OK",
     ),
 }
 
@@ -66,6 +90,7 @@ def datapath() -> pathlib.Path:
 def parser_case(case_name, datapath: pathlib.Path):
     (
         case_name,
+        models,
         exit_code,
         required_output_links,
         disallowed_output_links,
@@ -73,6 +98,7 @@ def parser_case(case_name, datapath: pathlib.Path):
     ) = PARSER_CASES[case_name]
     return ParserCase(
         datapath / case_name,
+        models,
         exit_code,
         required_output_links,
         disallowed_output_links,
@@ -148,7 +174,8 @@ def icon_result(parser_case, aiida_computer_local):
     make_remote = functools.partial(aiida.orm.RemoteData, computer=computer)
     builder = FakeIconBuilder(computer=computer)
     builder.inputs.master_namelist = aiida.orm.SinglefileData(datapath / "inputs" / "icon_master.namelist")
-    builder.inputs.models.atm = aiida.orm.SinglefileData(datapath / "inputs" / "model.namelist")
+    for model, filename in parser_case.models.items():
+        setattr(builder.inputs.models, model, aiida.orm.SinglefileData(datapath / "inputs" / filename))
     builder.inputs.dynamics_grid_file = make_remote(
         remote_path=str(datapath.absolute() / "inputs" / "icon_grid_simple.nc")
     )
@@ -193,14 +220,16 @@ def icon_builder(icon_code):
 
 def _add_input_files(inputs_path: pathlib.Path, builder: aiida_builder.ProcessBuilder) -> None:
     make_remote = functools.partial(aiida.orm.RemoteData, computer=builder.code.computer)  # type: ignore[attr-defined] # ProcessBuilder has custom __getattr__
+    filenames = [p.name for p in inputs_path.iterdir()]
     builder.master_namelist = aiida.orm.SinglefileData(inputs_path / "icon_master.namelist")
-    builder.models.atm = aiida.orm.SinglefileData(inputs_path / "model.namelist")  # type: ignore[attr-defined] # dynamic port namespace
+    if "model.namelist" in filenames:
+        builder.models.atm = aiida.orm.SinglefileData(inputs_path / "model.namelist")  # type: ignore[attr-defined] # dynamic port namespace
     builder.dynamics_grid_file = make_remote(remote_path=str(inputs_path / "icon_grid_simple.nc"))
     builder.ecrad_data = make_remote(remote_path=str(inputs_path / "ecrad_data"))
     builder.rrtmg_sw = make_remote(remote_path=str(inputs_path / "rrtmg_sw.nc"))
     builder.cloud_opt_props = make_remote(remote_path=str(inputs_path / "ECHAM6_CldOptProps.nc"))
     builder.dmin_wetgrowth_lookup = make_remote(remote_path=str(inputs_path / "dmin_wetgrowth_lookup.nc"))
-    if "wrapper_script.sh" in (p.name for p in inputs_path.iterdir()):
+    if "wrapper_script.sh" in filenames:
         builder.wrapper_script = aiida.orm.SinglefileData(inputs_path / "wrapper_script.sh")
 
 

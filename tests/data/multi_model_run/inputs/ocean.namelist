@@ -1,0 +1,16 @@
+! ocean_physics_nml: ocean specific namelist parameters ----------------------
+&ocean_physics_nml
+ i_sea_ice                   =  0
+/
+
+! io_nml: general switches for model I/O -------------------------------------
+&io_nml
+ write_last_restart          =                    .TRUE.
+ restart_write_mode          =   "joint procs multifile"
+/
+
+! output namelist: output streams for this model ------------------------------
+&output_nml
+ output_filename             =              './out_ocean/'  ! file name base
+ steps_per_file              =              1
+/

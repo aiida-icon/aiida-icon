@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import pathlib
 import tempfile
 import typing
@@ -12,6 +13,9 @@ from aiida.common import log as aiidalog
 from aiida.transports import transport
 
 from aiida_icon import exceptions
+
+if typing.TYPE_CHECKING:
+    import logging
 
 KeyT_contra = typing.TypeVar("KeyT_contra", contravariant=True)
 ValT = typing.TypeVar("ValT")
@@ -44,36 +48,65 @@ class ReporterProtocol(typing.Protocol):
     def report(self, msg: str) -> None: ...
 
 
-def collect_model_nml(namespace: ReadMapProtocol, *, download: bool = False) -> f90nml.Namelist:
+@functools.singledispatch
+def fetch_model_nml(data: typing.Any, *, download: bool = False) -> f90nml.Namelist:
+    _ = download
+    msg = f"Unexpected type for a model namelist input: {type(data)}"
+    raise TypeError(msg)
+
+
+@fetch_model_nml.register
+def fetch_model_nml_from_singlefile(data: orm.SinglefileData, *, download: bool = False) -> f90nml.Namelist:
+    _ = download
+    return f90nml.reads(data.get_content(mode="r"))
+
+
+@fetch_model_nml.register
+def fetch_model_nml_from_remotedata(data: orm.RemoteData, *, download: bool = False) -> f90nml.Namelist:
+    if not download:
+        msg = "Was not allowed to download file"
+        raise exceptions.RemoteModelNamelistInaccessibleError(msg)
+    if not data.computer:
+        msg = "RemoteData node not associated with a computer"
+        raise exceptions.RemoteModelNamelistInaccessibleError(msg)
+    try:
+        with tempfile.NamedTemporaryFile() as tf:
+            data.computer.get_transport().getfile(data.get_remote_path(), tf.name)
+            return f90nml.reads(pathlib.Path(tf.name).read_text())
+    except (aiidaxc.TransportTaskException, transport.TransportInternalError) as err:
+        raise exceptions.RemoteModelNamelistInaccessibleError from err
+
+
+def iter_model_nml(
+    namespace: ReadMapProtocol, *, download: bool = False, strict: bool = True, logger: logging.Logger | None
+) -> typing.Iterator[f90nml.Namelist]:
     """Concatenate and parse all model namelist inputs into one f90nml.Namelist structure."""
-    result = f90nml.Namelist()
     # TODO: this is for the old way of passing a single model nml,
     # should go away at some point
     if "model_namelist" in namespace:
-        result = f90nml.reads(
-            str(result) + "\n" + typing.cast("orm.SinglefileData", namespace["model_namelist"]).get_content(mode="r")
-        )
-    for nml in namespace.get("models", {}).values():
-        match nml:
-            case orm.SinglefileData():
-                result = f90nml.reads("\n".join([str(result), nml.get_content(mode="r")]))
-            case orm.RemoteData() if download and nml.computer:
-                try:
-                    with tempfile.NamedTemporaryFile() as tf:
-                        result = nml.computer.get_transport().getfile(nml.get_remote_path(), tf.name)
-                        result = f90nml.reads("\n".join([str(result), pathlib.Path(tf.name).read_text()]))
-                except (aiidaxc.TransportTaskException, transport.TransportInternalError) as err:
-                    raise exceptions.RemoteModelNamelistInaccessibleError from err
-            case orm.RemoteData():
-                pass  # no way to be helpful here
-            case _:
-                msg = f"Unexpected type for a model namelist input: {type(nml)}"
-                raise TypeError(msg)
-    return result
+        yield f90nml.reads(typing.cast("orm.SinglefileData", namespace["model_namelist"]).get_content(mode="r"))
+    for model_name, nml_data in namespace.get("models", {}).items():
+        try:
+            yield fetch_model_nml(nml_data, download=download)
+        except exceptions.RemoteModelNamelistInaccessibleError as err:
+            if logger:
+                logger.warning("Could not ensure consistency with model namelist for '%s': %s", model_name, str(err))
+            if strict:
+                raise
+
+
+def collect_model_nml(
+    namespace: ReadMapProtocol, *, download: bool = False, strict: bool = True, logger: logging.Logger | None = None
+) -> f90nml.Namelist:
+    nml_iterator = iter_model_nml(namespace=namespace, download=download, strict=strict, logger=logger)
+    return f90nml.reads("\n".join([str(modelnml) for modelnml in nml_iterator]))
 
 
 def make_remote_path_triplet(
-    remote_path: orm.RemoteData, *, lookup_path: str | None = None, nml_data: f90nml.Namelist | None = None
+    remote_path: orm.RemoteData,
+    *,
+    lookup_path: str | None = None,
+    nml_data: f90nml.Namelist | None = None,
 ) -> tuple[str, str, str]:
     """
     Make a local/remote_copy/link_list compatible triplet from a remote path.
@@ -159,7 +192,13 @@ def make_model_actions(
                 if not model_inp.computer:
                     msg = "RemoteData without computer can not be added to copy list"
                     raise aiidaxc.InternalError(msg)
-                result.remote_copy_list.append((model_inp.computer.uuid, model_inp.get_remote_path(), str(model_path)))
+                result.remote_copy_list.append(
+                    (
+                        model_inp.computer.uuid,
+                        model_inp.get_remote_path(),
+                        str(model_path),
+                    )
+                )
             case orm.SinglefileData() if model_path.is_absolute():
                 reporter.report(
                     f"Warning: Local file input for model '{model_name}' ignored, "
