@@ -14,6 +14,7 @@ from aiida.common import exceptions as aiidaxc
 from aiida.common.links import validate_link_label
 from aiida.engine.processes import ports
 from aiida.parsers import parser
+from typing_extensions import Self
 
 from aiida_icon import builder, calcutils, exceptions
 from aiida_icon.iconutils import masternml, modelnml
@@ -36,10 +37,17 @@ class IconCalculation(engine.CalcJob):
     def define(cls, spec: calcjob.CalcJobProcessSpec) -> None:  # type: ignore[override] # forced by aiida-core
         super().define(spec)
         spec.input("master_namelist", valid_type=orm.SinglefileData)
-        spec.input_namespace("models", valid_type=(orm.SinglefileData, orm.RemoteData), required=False)
+        spec.input_namespace(
+            "models",
+            valid_type=(orm.SinglefileData, orm.RemoteData),
+            required=False,
+            help="Namelist file for each model (model name must match entry in master namelist).",
+        )
         # deprecated, use "models" namespace instead. Kept around for validity of existing nodes
         spec.input("model_namelist", valid_type=orm.SinglefileData, required=False)
-        spec.input("restart_file", valid_type=orm.RemoteData, required=False)
+        spec.input_namespace(
+            "restart_file", valid_type=orm.RemoteData, required=False, help="Per-model restart files to start from."
+        )
         spec.input("wrapper_script", valid_type=orm.SinglefileData, required=False)
         spec.input(
             "setup_env",
@@ -76,7 +84,7 @@ class IconCalculation(engine.CalcJob):
         )
         spec.input("extpar_file", valid_type=orm.RemoteData, required=False)
         spec.input("ifs2icon", valid_type=orm.RemoteData, required=False)
-        spec.output("latest_restart_file")
+        spec.output_namespace("latest_restart_file", dynamic=True)
         spec.output_namespace("all_restart_files", dynamic=True)
         spec.output_namespace(
             "output_streams",
@@ -129,7 +137,7 @@ class IconCalculation(engine.CalcJob):
         )
 
     def prepare_for_submission(self, folder: folders.Folder) -> datastructures.CalcInfo:
-        model_namelist_data = calcutils.collect_model_nml(self.inputs)
+        model_namelist_data = calcutils.collect_model_nml(self.inputs, download=True, strict=False, logger=self.logger)
         master_namelist_data = f90nml.reads(self.inputs.master_namelist.get_content(mode="r"))
 
         for stream_info in modelnml.read_output_stream_infos(model_namelist_data):
@@ -189,13 +197,17 @@ class IconCalculation(engine.CalcJob):
                 )
             )
         if "restart_file" in self.inputs:
-            calcinfo.remote_symlink_list.append(
-                (
-                    self.inputs.code.computer.uuid,
-                    self.inputs.restart_file.get_remote_path(),
-                    modelnml.read_latest_restart_file_link_name(model_namelist_data),
+            for model_name, remfile in self.inputs.restart_file.items():
+                calcinfo.remote_symlink_list.append(
+                    (
+                        self.inputs.code.computer.uuid,
+                        remfile.get_remote_path(),
+                        modelnml.read_latest_restart_file_link_name(
+                            model_name=model_name,
+                            model_nml=calcutils.fetch_model_nml(self.inputs.models[model_name]),
+                        ),
+                    )
                 )
-            )
         if "link_paths" in self.inputs:
             for remotedata in self.inputs.link_paths.values():
                 calcinfo.remote_symlink_list.append(
@@ -315,6 +327,18 @@ class RestartResult:
     latest_restart: orm.RemoteData | None = None
 
 
+def worst_restart_status(stati: typing.Iterator[RestartStatus]) -> RestartStatus:
+    if not stati:
+        return RestartStatus.ERROR
+    worst = RestartStatus.OK
+    for status in stati:
+        if status is RestartStatus.MISSING and worst is RestartStatus.OK:
+            worst = status
+        elif status is RestartStatus.ERROR:
+            return status
+    return worst
+
+
 class IconParser(parser.Parser):
     """Parser for raw Icon calculations."""
 
@@ -327,10 +351,13 @@ class IconParser(parser.Parser):
             self.node.inputs.master_namelist
         )
         restarts = self.parse_restart_files(restart_indicated=restart_indicated)
-        if restarts.all_restarts:
-            self.out("all_restart_files", restarts.all_restarts)
-        if restarts.latest_restart:
-            self.out("latest_restart_file", restarts.latest_restart)
+        for model_name, restart_result in restarts.items():
+            if restart_result.all_restarts:
+                self.out(f"all_restart_files.{model_name}", restart_result.all_restarts)
+            if restart_result.latest_restart:
+                self.out(f"latest_restart_file.{model_name}", restart_result.latest_restart)
+
+        restart_status = worst_restart_status(res.status for res in restarts.values())
 
         # Parse output streams
         try:
@@ -344,7 +371,7 @@ class IconParser(parser.Parser):
             case FinishStatus.OK:
                 pass
             case FinishStatus.RESTART:
-                if restarts.status is not RestartStatus.OK:
+                if restart_status is not RestartStatus.OK:
                     return self.exit_codes.PARTIALLY_PARSED
             case FinishStatus.UNEXPECTED:
                 return self.exit_codes.PARTIALLY_PARSED
@@ -379,30 +406,50 @@ class IconParser(parser.Parser):
 
         return result
 
-    def parse_restart_files(self, *, restart_indicated: bool) -> RestartResult:
+    def parse_restart_files(self, *, restart_indicated: bool) -> dict[str, RestartResult]:
         remote_folder = self.node.outputs.remote_folder
-        remote_path = pathlib.Path(remote_folder.get_remote_path())
-
-        result = RestartResult(status=RestartStatus.MISSING)
+        results = {"all": RestartResult(status=RestartStatus.MISSING)}
         try:
             _ = remote_folder.computer.get_authinfo(user=orm.User.collection.get_default())
         except aiidaxc.NotExistent:
             self.logger.info("Can not parse restart file names: not possible to authenticate to the computer")
-            return result
+            return results
 
+        masternml_data = f90nml.reads(self.node.inputs.master_namelist.get_content(mode="r"))
+        for model_name, _ in masternml.iter_model_name_filepath(masternml_data):
+            results[model_name] = self.parse_restart_files_for_model(
+                model_name=model_name, restart_indicated=restart_indicated
+            )
+
+        if len(results) > 1:
+            results.pop("all")
+
+        return results
+
+    def parse_restart_files_for_model(self: Self, *, model_name: str, restart_indicated: bool) -> RestartResult:
+        remote_folder = self.node.outputs.remote_folder
+        remote_path = pathlib.Path(remote_folder.get_remote_path())
         files = remote_folder.listdir()
+        result = RestartResult(status=RestartStatus.MISSING)
         all_restarts_pattern = ""
         latest_restart_name = ""
         try:
-            modelnml_data = calcutils.collect_model_nml(self.node.get_builder_restart())
-            all_restarts_pattern = modelnml.read_restart_file_pattern(modelnml_data)
-            latest_restart_name = modelnml.read_latest_restart_file_link_name(modelnml_data)
+            modelnml_data = calcutils.fetch_model_nml(self.node.inputs.models[model_name])
+            all_restarts_pattern = modelnml.read_restart_file_pattern(model_name, modelnml_data)
+            latest_restart_name = modelnml.read_latest_restart_file_link_name(
+                model_name,
+                model_nml=modelnml_data,
+            )
+
         except exceptions.SinglefileRestartNotImplementedError:
             self.logger.info("Can not parse restart file names, singlefile mode is not supported.")
             if restart_indicated:
                 result.status = RestartStatus.ERROR
         except exceptions.RemoteModelNamelistInaccessibleError:
-            self.logger.warning("Could not parse restart file names from remote model namelists.")
+            self.logger.warning(
+                "Could not parse restart file names from remote model namelist for model %s.",
+                model_name,
+            )
 
         for file_name in files:
             if restart_match := re.match(all_restarts_pattern, file_name):
