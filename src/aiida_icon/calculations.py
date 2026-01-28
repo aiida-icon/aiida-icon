@@ -342,11 +342,7 @@ def worst_restart_status(stati: typing.Iterator[RestartStatus]) -> RestartStatus
 class IconParser(parser.Parser):
     """Parser for raw Icon calculations."""
 
-    # TODO: Function to get all inputs / outputs via the namelist elements
     def parse(self, **kwargs):  # noqa: ARG002  # kwargs must be there for superclass compatibility
-        # Store namelist data in CalcJob extras for easy querying
-        self._store_namelist_extras()
-
         finish_status = self.parse_finish_status()
         if finish_status.message:
             self.out("finish_status", finish_status.message)
@@ -385,48 +381,6 @@ class IconParser(parser.Parser):
                 return self.exit_codes.ERROR_MISSING_OUTPUT_FILES
 
         return engine.ExitCode(0)
-
-    def _store_namelist_extras(self) -> None:
-        """Store parsed namelist content in the IconCalculation node extras.
-
-        This duplicates the namelist data (which is already in the SinglefileData
-        node attributes) to the CalcJob extras for simplified querying. Instead of
-        querying through input links, users can directly query the CalcJob by
-        namelist parameters.
-
-        Example queries::
-
-            # Query by master namelist parameter
-            qb = QueryBuilder()
-            qb.append(IconCalculation, filters={
-                'extras.master_namelist.run_nml.num_lev': 60
-            })
-
-            # Query by specific model namelist parameter
-            qb = QueryBuilder()
-            qb.append(IconCalculation, filters={
-                'extras.models.atm.parallel_nml.nproma': 8
-            })
-        """
-        from aiida_icon.iconutils import namelists
-
-        # Store master namelist content
-        if "master_namelist" in self.node.inputs:
-            master_nml = namelists.namelists_data(self.node.inputs.master_namelist)
-            master_dict = namelists.namelist_to_dict(master_nml)
-            self.node.base.extras.set("master_namelist", master_dict)
-
-        # Store each model namelist separately with its key
-        if "models" in self.node.inputs:
-            models_dict = {}
-            for model_key, model_input in self.node.inputs.models.items():
-                # Only process SinglefileData inputs (skip RemoteData)
-                if isinstance(model_input, orm.SinglefileData):
-                    model_nml = namelists.namelists_data(model_input)
-                    models_dict[model_key] = namelists.namelist_to_dict(model_nml)
-
-            if models_dict:
-                self.node.base.extras.set("models", models_dict)
 
     def parse_finish_status(self) -> FinishStatusResult:
         result = FinishStatusResult(status=FinishStatus.ERR_MISSING_STATUS, message=None)
