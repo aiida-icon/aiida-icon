@@ -1,5 +1,3 @@
-import io
-import pathlib
 import typing
 
 import aiida.orm
