@@ -22,10 +22,10 @@ def write_restart_options():
     return masternml.options(
         master_options=masternml.MasterOptions(lrestart=True),
         time_control_options=masternml.TimeControlOptions(
-            experiment_start_date="2000-01-01T00:00:00Z",
-            experiment_stop_date="2000-01-01T06:00:00Z",
-            restart_time_int_val="PT3H",
-            checkpoint_time_int_val="PT3H",
+            experimentstartdate="2000-01-01T00:00:00Z",
+            experimentstopdate="2000-01-01T06:00:00Z",
+            restarttimeintval="PT3H",
+            checkpointtimeintval="PT3H",
         ),
     )
 
@@ -80,10 +80,10 @@ def test_write_restart_options(write_restart_options):
     assert write_restart_options == {
         "master_nml": {"lrestart": True},
         "master_time_control_nml": {
-            "experiment_start_date": "2000-01-01T00:00:00Z",
-            "experiment_stop_date": "2000-01-01T06:00:00Z",
-            "restart_time_int_val": "PT3H",
-            "checkpoint_time_int_val": "PT3H",
+            "experimentstartdate": "2000-01-01T00:00:00Z",
+            "experimentstopdate": "2000-01-01T06:00:00Z",
+            "restarttimeintval": "PT3H",
+            "checkpointtimeintval": "PT3H",
         },
     }
 
