@@ -10,6 +10,7 @@ from aiida_icon import tools
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
+
 ItemT = typing.TypeVar("ItemT")
 
 
@@ -121,6 +122,8 @@ class IconCalculationBuilder(process_builder.ProcessBuilder):
         >>> builder.metadata.options.custom_scheduler_commands
         '#SBATCH --uenv=foo --view=bar'
     """
+
+    metadata: typing.Any
 
     def __setattr__(self, attr: str, value: typing.Any) -> None:
         if attr == "wrapper_script":
